@@ -1,0 +1,497 @@
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  color: white;
+  margin-bottom: 30px;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.header p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  padding: 12px 24px;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.tab-btn:hover,
+.tab-btn.active {
+  background: white;
+  color: var(--primary);
+}
+
+/* Cards */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  margin-bottom: 20px;
+}
+
+.card-title {
+  color: var(--primary);
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--accent);
+}
+
+/* Form */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--dark);
+  font-weight: 600;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--secondary);
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.required::after {
+  content: ' *';
+  color: var(--danger);
+}
+
+/* Skills Section */
+.skills-section {
+  margin-top: 20px;
+}
+
+.skills-category {
+  margin-bottom: 25px;
+}
+
+.skills-category h3 {
+  color: var(--primary);
+  margin-bottom: 15px;
+  padding: 10px;
+  background: linear-gradient(90deg, var(--light), transparent);
+  border-left: 4px solid var(--secondary);
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+}
+
+.skill-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 15px;
+  background: var(--light);
+  border-radius: 8px;
+  transition: transform 0.2s;
+}
+
+.skill-item:hover {
+  transform: translateX(5px);
+  background: #e8f4f8;
+}
+
+.skill-item label {
+  flex: 1;
+  font-weight: 500;
+}
+
+.skill-item select {
+  width: 140px;
+  padding: 8px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+}
+
+/* Custom Modules */
+.custom-modules {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f0f7ff;
+  border-radius: 12px;
+}
+
+.custom-module-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.custom-module-row input {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+}
+
+.custom-module-row select {
+  width: 140px;
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+}
+
+.custom-module-row button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-add {
+  background: var(--success);
+  color: white;
+}
+
+.btn-remove {
+  background: var(--danger);
+  color: white;
+}
+
+/* Radio/Checkbox Groups */
+.radio-group {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.radio-item input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Buttons */
+.btn {
+  padding: 14px 28px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(26, 95, 122, 0.4);
+}
+
+.btn-secondary {
+  background: var(--light);
+  color: var(--dark);
+  border: 2px solid #e0e0e0;
+}
+
+.btn-secondary:hover {
+  background: #e0e0e0;
+}
+
+.btn-success {
+  background: var(--success);
+  color: white;
+}
+
+.btn-group {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+
+/* Matrix Table */
+.matrix-container {
+  overflow-x: auto;
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.matrix-table th,
+.matrix-table td {
+  padding: 10px 8px;
+  text-align: center;
+  border: 1px solid #e0e0e0;
+}
+
+.matrix-table th {
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.matrix-table th.rotate {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  height: 150px;
+  white-space: nowrap;
+}
+
+.matrix-table tr:nth-child(even) {
+  background: var(--light);
+}
+
+.matrix-table tr:hover {
+  background: #e8f4f8;
+}
+
+.matrix-table td:first-child {
+  font-weight: 600;
+  text-align: left;
+  background: #f8f9fa;
+}
+
+/* Skill Level Badges */
+.skill-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.skill-none {
+  background: #f8f9fa;
+  color: #6c757d;
+}
+.skill-learning {
+  background: #fff3cd;
+  color: #856404;
+}
+.skill-basic {
+  background: #cce5ff;
+  color: #004085;
+}
+.skill-proficient {
+  background: #d4edda;
+  color: #155724;
+}
+.skill-expert {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 2px solid #0c5460;
+}
+
+/* Grade Badge */
+.grade-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.grade-A {
+  background: #28a745;
+  color: white;
+}
+.grade-B {
+  background: #20c997;
+  color: white;
+}
+.grade-C {
+  background: #ffc107;
+  color: #212529;
+}
+.grade-D {
+  background: #fd7e14;
+  color: white;
+}
+.grade-F {
+  background: #dc3545;
+  color: white;
+}
+
+/* Statistics Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.stat-card h3 {
+  font-size: 2.5rem;
+  margin-bottom: 5px;
+}
+
+.stat-card p {
+  opacity: 0.9;
+}
+
+/* Engineer List */
+.engineer-list {
+  margin-top: 20px;
+}
+
+.engineer-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: var(--light);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.engineer-info h4 {
+  color: var(--primary);
+  margin-bottom: 5px;
+}
+
+.engineer-info p {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.engineer-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.engineer-actions button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Checkbox Group */
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  background: var(--light);
+  border-radius: 6px;
+}
+
+.checkbox-item input {
+  width: 16px;
+  height: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header h1 {
+    font-size: 1.8rem;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  .skills-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .matrix-table th.rotate {
+    writing-mode: horizontal-tb;
+    height: auto;
+  }
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: white;
+  }
+
+  .tabs,
+  .btn-group,
+  .no-print {
+    display: none !important;
+  }
+
+  .card {
+    box-shadow: none;
+    border: 1px solid #e0e0e0;
+  }
+}
