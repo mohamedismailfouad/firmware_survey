@@ -25,6 +25,9 @@ export default function App() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
+  const isAdmin = new URLSearchParams(window.location.search).get('admin') === 'true';
+  const visibleTabs = isAdmin ? TABS : TABS.filter((t) => t.key === 'survey');
+
   useEffect(() => {
     loadData();
   }, []);
@@ -93,6 +96,7 @@ export default function App() {
     return (
       <div className="container">
         <div className="header">
+          <img src="/azka_logo.png" alt="AZKA Logo" className="header-logo" />
           <h1>AZKA Firmware Team Survey</h1>
           <p>Loading...</p>
         </div>
@@ -103,12 +107,13 @@ export default function App() {
   return (
     <div className="container">
       <div className="header">
+        <img src="/azka_logo.png" alt="AZKA Logo" className="header-logo" />
         <h1>AZKA Firmware Team Survey</h1>
         <p>Skills Assessment & Team Identification System</p>
       </div>
 
       <div className="tabs">
-        {TABS.map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab.key}
             className={`tab-btn ${activeTab === tab.key ? 'active' : ''}`}
