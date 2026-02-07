@@ -9,6 +9,7 @@ import {
 
 const EMPTY_FORM = {
   fullName: '',
+  email: '',
   hrCode: '',
   title: '',
   experience: '',
@@ -47,6 +48,7 @@ export default function SurveyForm({ surveyData, onSubmit, editData, onClearEdit
   function formFromEngineer(eng) {
     return {
       fullName: eng.fullName || '',
+      email: eng.email || '',
       hrCode: eng.hrCode || '',
       title: eng.title || '',
       experience: eng.experience ?? '',
@@ -130,6 +132,7 @@ export default function SurveyForm({ surveyData, onSubmit, editData, onClearEdit
       id: editData?.id || Date.now(),
       timestamp: new Date().toISOString(),
       fullName: form.fullName,
+      email: form.email,
       hrCode: form.hrCode,
       title: form.title,
       experience: parseInt(form.experience),
@@ -180,6 +183,16 @@ export default function SurveyForm({ surveyData, onSubmit, editData, onClearEdit
               placeholder="Enter your full name"
               value={form.fullName}
               onChange={(e) => updateField('fullName', e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label className="required">Email</label>
+            <input
+              type="email"
+              required
+              placeholder="Enter your email"
+              value={form.email}
+              onChange={(e) => updateField('email', e.target.value)}
             />
           </div>
           <div className="form-group">

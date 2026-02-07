@@ -7,6 +7,7 @@ const surveySchema = new mongoose.Schema(
 
     // Personal info
     fullName: { type: String, required: true, trim: true },
+    email: { type: String, required: true, trim: true },
     hrCode: { type: String, required: true, unique: true, trim: true },
     title: {
       type: String,
