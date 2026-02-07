@@ -10,8 +10,13 @@
 }
 
 .header-logo {
-  height: 60px;
-  margin-bottom: 10px;
+  height: 70px;
+  margin-bottom: 20px;
+  background: white;
+  padding: 15px 35px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .header h1 {
