@@ -102,24 +102,63 @@ export function exportJSON(surveyData) {
   URL.revokeObjectURL(url);
 }
 
+function mapToObject(map) {
+  if (map instanceof Map) return Object.fromEntries(map);
+  if (map && typeof map === 'object') return map;
+  return {};
+}
+
+function escapeCSV(value) {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
 export function exportCSV(surveyData, allModules) {
   if (surveyData.length === 0) {
     alert('No data to export');
     return;
   }
 
-  let csv =
-    'Name,HR Code,Title,Experience,Department,Project,' +
-    allModules.join(',') +
-    ',Score,Grade\n';
+  // Header row
+  const headers = [
+    'Name',
+    'Email',
+    'HR Code',
+    'Title',
+    'Experience',
+    'Department',
+    'Project',
+    ...allModules,
+    'Score',
+    'Grade',
+  ];
+
+  let csv = headers.join(',') + '\n';
 
   surveyData.forEach((eng) => {
-    const grade = calculateGrade(eng.skills, eng.customSkills);
-    const allSkills = { ...eng.skills, ...eng.customSkills };
+    const skills = mapToObject(eng.skills);
+    const customSkills = mapToObject(eng.customSkills);
+    const allSkills = { ...skills, ...customSkills };
+    const grade = calculateGrade(skills, customSkills);
 
-    csv += `"${eng.fullName}","${eng.hrCode}","${eng.title}",${eng.experience},"${eng.department}","${eng.projectName}",`;
-    csv += allModules.map((m) => SKILL_VALUES[allSkills[m]] || 0).join(',');
-    csv += `,${grade.percentage}%,${grade.grade}\n`;
+    const row = [
+      escapeCSV(eng.fullName),
+      escapeCSV(eng.email || ''),
+      escapeCSV(eng.hrCode),
+      escapeCSV(eng.title),
+      eng.experience || 0,
+      escapeCSV(eng.department),
+      escapeCSV(eng.projectName),
+      ...allModules.map((m) => SKILL_VALUES[allSkills[m]] || 0),
+      `${grade.percentage}%`,
+      grade.grade,
+    ];
+
+    csv += row.join(',') + '\n';
   });
 
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });

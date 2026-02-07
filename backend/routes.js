@@ -80,7 +80,7 @@ router.get('/export/csv', async (req, res) => {
     });
 
     let csv =
-      'Name,HR Code,Title,Experience,Department,Project,' +
+      'Name,Email,HR Code,Title,Experience,Department,Project,' +
       allModules.join(',') +
       ',Score,Grade\n';
 
@@ -91,7 +91,7 @@ router.get('/export/csv', async (req, res) => {
         ...mapToObject(eng.customSkills),
       };
 
-      csv += `"${eng.fullName}","${eng.hrCode}","${eng.title}",${eng.experience},"${eng.department}","${eng.projectName}",`;
+      csv += `"${eng.fullName || ''}","${eng.email || ''}","${eng.hrCode || ''}","${eng.title || ''}",${eng.experience || 0},"${eng.department || ''}","${eng.projectName || ''}",`;
       csv += allModules.map((m) => SKILL_VALUES[allSkills[m]] || 0).join(',');
       csv += `,${grade.percentage}%,${grade.grade}\n`;
     });
