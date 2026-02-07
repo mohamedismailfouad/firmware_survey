@@ -9,6 +9,7 @@ import {
   deleteSurvey,
   importSurveys,
   clearAllSurveys,
+  loginAdmin,
 } from './data/utils';
 import './App.css';
 
@@ -25,7 +26,15 @@ export default function App() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
-  const isAdmin = new URLSearchParams(window.location.search).get('admin') === 'true';
+  // Auth state
+  const [isAdmin, setIsAdmin] = useState(() => {
+    return localStorage.getItem('isAdmin') === 'true';
+  });
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
   const visibleTabs = isAdmin ? TABS : TABS.filter((t) => t.key === 'survey');
 
   useEffect(() => {
@@ -41,6 +50,29 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setLoginError('');
+    try {
+      const result = await loginAdmin(loginUsername, loginPassword);
+      if (result.success) {
+        setIsAdmin(true);
+        localStorage.setItem('isAdmin', 'true');
+        setShowLogin(false);
+        setLoginUsername('');
+        setLoginPassword('');
+      }
+    } catch (err) {
+      setLoginError(err.message || 'Login failed');
+    }
+  }
+
+  function handleLogout() {
+    setIsAdmin(false);
+    localStorage.removeItem('isAdmin');
+    setActiveTab('survey');
   }
 
   async function handleSubmit(engineer) {
@@ -112,6 +144,48 @@ export default function App() {
         <p>Skills Assessment & Team Identification System</p>
       </div>
 
+      {/* Login Modal */}
+      {showLogin && (
+        <div className="modal-overlay" onClick={() => setShowLogin(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Admin Login</h2>
+            <form onSubmit={handleLogin}>
+              <div className="form-group">
+                <label>Username</label>
+                <input
+                  type="text"
+                  value={loginUsername}
+                  onChange={(e) => setLoginUsername(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Password</label>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  required
+                />
+              </div>
+              {loginError && <p className="error-text">{loginError}</p>}
+              <div className="btn-group">
+                <button type="submit" className="btn btn-primary">
+                  Login
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowLogin(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="tabs">
         {visibleTabs.map((tab) => (
           <button
@@ -122,6 +196,20 @@ export default function App() {
             {tab.label}
           </button>
         ))}
+        <div className="auth-buttons">
+          {isAdmin ? (
+            <button className="btn btn-secondary btn-sm" onClick={handleLogout}>
+              Logout
+            </button>
+          ) : (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowLogin(true)}
+            >
+              Admin Login
+            </button>
+          )}
+        </div>
       </div>
 
       {activeTab === 'survey' && (

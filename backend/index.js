@@ -3,6 +3,8 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import surveyRoutes from './routes.js';
+import authRoutes from './authRoutes.js';
+import Admin from './Admin.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,6 +20,13 @@ async function connectDB() {
   await mongoose.connect(process.env.MONGODB_URI);
   isConnected = true;
   console.log('Connected to MongoDB Atlas');
+
+  // Seed default admin if none exists
+  const existingAdmin = await Admin.findOne();
+  if (!existingAdmin) {
+    await Admin.create({ username: 'admin', password: 'azka2024' });
+    console.log('Default admin created');
+  }
 }
 
 // Ensure DB is connected before any route
@@ -37,6 +46,7 @@ app.get('/', (req, res) => {
 
 // Routes
 app.use('/api/surveys', surveyRoutes);
+app.use('/api/auth', authRoutes);
 
 // For local development
 if (process.env.NODE_ENV !== 'production') {

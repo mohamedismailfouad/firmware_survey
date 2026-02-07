@@ -55,6 +55,20 @@ export async function importSurveys(data, merge) {
   return res.json();
 }
 
+export async function loginAdmin(username, password) {
+  const API_URL = import.meta.env.VITE_API_URL || '';
+  const res = await fetch(`${API_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || 'Invalid credentials');
+  }
+  return res.json();
+}
+
 // --- Pure client-side functions (unchanged) ---
 
 export function calculateGrade(skills, customSkills = {}) {
