@@ -1,5 +1,6 @@
 import express from 'express';
 import Survey from './Survey.js';
+import { sendSurveyNotification } from './emailService.js';
 
 const router = express.Router();
 
@@ -166,6 +167,12 @@ router.post('/', async (req, res) => {
   try {
     const survey = new Survey(req.body);
     await survey.save();
+
+    // Send email notification (don't wait for it to complete)
+    sendSurveyNotification(survey.toObject()).catch((err) => {
+      console.error('Email notification failed:', err);
+    });
+
     res.status(201).json(survey.toObject());
   } catch (err) {
     if (err.code === 11000) {
