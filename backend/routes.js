@@ -220,4 +220,34 @@ router.delete('/', async (req, res) => {
   }
 });
 
+// --- Send personalized email ---
+router.post('/send-email', async (req, res) => {
+  try {
+    const { to, subject, html } = req.body;
+    if (!to || !subject || !html) {
+      return res.status(400).json({ error: 'to, subject, and html are required' });
+    }
+
+    const nodemailer = await import('nodemailer');
+    const transporter = nodemailer.default.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to,
+      subject,
+      html,
+    });
+
+    res.json({ success: true, to });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
