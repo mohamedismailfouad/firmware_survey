@@ -104,6 +104,106 @@ async function sendServiceEmail(request, isUpdate) {
   });
 }
 
+// --- Helper: send status change email to employee ---
+async function sendStatusChangeEmail(request, newStatus) {
+  const nodemailer = await import('nodemailer');
+  const transporter = nodemailer.default.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const fromName = process.env.EMAIL_FROM_NAME || 'AZKA Firmware Team';
+  const fromAddress = process.env.EMAIL_USER;
+  const ccAddress = process.env.EMAIL_CC || '';
+  const typeLabel = TYPE_LABELS[request.type] || request.type;
+  const statusLabel = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+  const statusColor = newStatus === 'approved' ? '#27ae60' : '#e74c3c';
+
+  let datesHtml = '';
+  if (request.dates && request.dates.length > 0) {
+    const formattedDates = request.dates
+      .map((d) => {
+        const date = new Date(d + 'T00:00:00');
+        return date.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+      })
+      .join('<br>');
+    datesHtml = `
+      <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="color: #1a5f7a; margin-top: 0;">Requested Dates</h3>
+        <p style="line-height: 1.8;">${formattedDates}</p>
+      </div>`;
+  }
+
+  let reasonHtml = '';
+  if (request.reason) {
+    reasonHtml = `
+      <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="color: #1a5f7a; margin-top: 0;">Reason / Details</h3>
+        <p style="line-height: 1.6;">${request.reason.replace(/\n/g, '<br>')}</p>
+      </div>`;
+  }
+
+  let adminNoteHtml = '';
+  if (request.adminNote) {
+    adminNoteHtml = `
+      <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="color: #856404; margin-top: 0;">Admin Note</h3>
+        <p style="line-height: 1.6;">${request.adminNote.replace(/\n/g, '<br>')}</p>
+      </div>`;
+  }
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+      <div style="background: linear-gradient(135deg, #1a5f7a, #159895); padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h2 style="color: white; margin: 0;">Service Request ${statusLabel}</h2>
+      </div>
+      <div style="background: #ffffff; padding: 25px; border: 1px solid #e0e0e0;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <span style="display: inline-block; background: ${statusColor}; color: white; padding: 10px 30px; border-radius: 25px; font-size: 1.2rem; font-weight: 700;">
+            ${statusLabel}
+          </span>
+        </div>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h3 style="color: #1a5f7a; margin-top: 0;">Request Details</h3>
+          <p style="margin: 5px 0;"><strong>Type:</strong> ${typeLabel}</p>
+          <p style="margin: 5px 0;"><strong>Email:</strong> ${request.email}</p>
+          <p style="margin: 5px 0;"><strong>HR Code:</strong> ${request.hrCode}</p>
+        </div>
+        ${datesHtml}
+        ${reasonHtml}
+        ${adminNoteHtml}
+        <p style="color: #666; font-size: 13px; text-align: center;">
+          Submitted on ${new Date(request.submittedAt).toLocaleString()}
+        </p>
+      </div>
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 0 0 12px 12px; text-align: center; border: 1px solid #e0e0e0; border-top: none;">
+        <p style="color: #999; font-size: 12px; margin: 0;">AZKA Firmware Team - Service Request System</p>
+      </div>
+    </div>
+  `;
+
+  const subject = `Your ${typeLabel} Request has been ${statusLabel}`;
+
+  // Send to employee + CC
+  await transporter.sendMail({
+    from: `"${fromName}" <${fromAddress}>`,
+    to: request.email,
+    cc: ccAddress,
+    subject,
+    html,
+  });
+}
+
 // --- Stats ---
 router.get('/stats', async (req, res) => {
   try {
@@ -216,23 +316,28 @@ router.post('/', async (req, res) => {
       submittedAt: new Date(),
     };
 
-    // Check for existing pending request of same type from same email
-    const existing = await ServiceRequest.findOne({
-      email: requestData.email,
-      type: requestData.type,
-      status: 'pending',
-    });
-
+    // Upsert only for work_from_home (edit allowed).
+    // Urgent vacation and need help always create new requests.
     let serviceRequest;
     let isUpdate = false;
-    if (existing) {
-      serviceRequest = await ServiceRequest.findByIdAndUpdate(
-        existing._id,
-        requestData,
-        { new: true, runValidators: true }
-      );
-      isUpdate = true;
-    } else {
+
+    if (type === 'work_from_home') {
+      const existing = await ServiceRequest.findOne({
+        email: requestData.email,
+        type: 'work_from_home',
+        status: 'pending',
+      });
+      if (existing) {
+        serviceRequest = await ServiceRequest.findByIdAndUpdate(
+          existing._id,
+          requestData,
+          { new: true, runValidators: true }
+        );
+        isUpdate = true;
+      }
+    }
+
+    if (!serviceRequest) {
       serviceRequest = new ServiceRequest(requestData);
       await serviceRequest.save();
     }
@@ -265,6 +370,14 @@ router.put('/:id/status', async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!request) return res.status(404).json({ error: 'Not found' });
+
+    // Send status change email to employee (non-blocking)
+    if (status === 'approved' || status === 'rejected') {
+      sendStatusChangeEmail(request.toObject(), status).catch((err) => {
+        console.error('Status change email failed:', err);
+      });
+    }
+
     res.json(request.toObject());
   } catch (err) {
     res.status(400).json({ error: err.message });
