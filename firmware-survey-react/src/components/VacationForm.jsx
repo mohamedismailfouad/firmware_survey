@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import VacationCalendar from './VacationCalendar';
-import { DEPARTMENTS } from '../data/constants';
 import { createVacation, fetchVacations } from '../data/vacationUtils';
 
 export default function VacationForm() {
   const [form, setForm] = useState({
     email: '',
-    fullName: '',
     hrCode: '',
-    department: '',
   });
   const [selectedDays, setSelectedDays] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -41,7 +38,7 @@ export default function VacationForm() {
   }
 
   function resetForm() {
-    setForm({ email: '', fullName: '', hrCode: '', department: '' });
+    setForm({ email: '', hrCode: '' });
     setSelectedDays([]);
     setSubmitStatus(null);
     setEditMode(false);
@@ -64,7 +61,6 @@ export default function VacationForm() {
 
       const results = await fetchVacations(filters);
 
-      // If searched by email, filter exact match; if also by hrCode, match either
       let match = null;
       if (form.email) {
         match = results.find(
@@ -81,9 +77,7 @@ export default function VacationForm() {
       if (match) {
         setForm({
           email: match.email,
-          fullName: match.fullName,
           hrCode: match.hrCode,
-          department: match.department,
         });
         setSelectedDays([...match.vacationDays].sort());
         setEditMode(true);
@@ -130,7 +124,7 @@ export default function VacationForm() {
           ? `Vacation request updated successfully! ${selectedDays.length} day(s) recorded. Confirmation emails sent.`
           : `Vacation request submitted successfully! ${selectedDays.length} day(s) recorded. Confirmation emails sent to you and the admin.`,
       });
-      setForm({ email: '', fullName: '', hrCode: '', department: '' });
+      setForm({ email: '', hrCode: '' });
       setSelectedDays([]);
       setEditMode(false);
     } catch (err) {
@@ -182,16 +176,6 @@ export default function VacationForm() {
 
         <div className="form-grid">
           <div className="form-group">
-            <label>Full Name</label>
-            <input
-              type="text"
-              placeholder="Enter your full name (optional)"
-              value={form.fullName}
-              onChange={(e) => updateField('fullName', e.target.value)}
-              disabled={editMode}
-            />
-          </div>
-          <div className="form-group">
             <label className="required">Email</label>
             <input
               type="email"
@@ -212,22 +196,6 @@ export default function VacationForm() {
               onChange={(e) => updateField('hrCode', e.target.value)}
               disabled={editMode}
             />
-          </div>
-          <div className="form-group">
-            <label className="required">Department</label>
-            <select
-              required
-              value={form.department}
-              onChange={(e) => updateField('department', e.target.value)}
-              disabled={editMode}
-            >
-              <option value="">Select Department</option>
-              {DEPARTMENTS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
 

@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { DEPARTMENTS } from '../data/constants';
 import {
   fetchVacations,
   deleteVacation,
@@ -23,7 +22,6 @@ export default function VacationAdmin() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [yearFilter, setYearFilter] = useState(new Date().getFullYear());
-  const [deptFilter, setDeptFilter] = useState('all');
   const [searchFilter, setSearchFilter] = useState('');
   const [viewingVacation, setViewingVacation] = useState(null);
 
@@ -49,11 +47,9 @@ export default function VacationAdmin() {
 
   const filteredVacations = useMemo(() => {
     return vacations.filter((v) => {
-      if (deptFilter !== 'all' && v.department !== deptFilter) return false;
       if (searchFilter) {
         const s = searchFilter.toLowerCase();
         if (
-          !v.fullName.toLowerCase().includes(s) &&
           !v.email.toLowerCase().includes(s) &&
           !v.hrCode.toLowerCase().includes(s)
         )
@@ -61,10 +57,10 @@ export default function VacationAdmin() {
       }
       return true;
     });
-  }, [vacations, deptFilter, searchFilter]);
+  }, [vacations, searchFilter]);
 
-  async function handleDelete(id, name) {
-    if (!confirm(`Delete vacation request for "${name}"?`)) return;
+  async function handleDelete(id, email) {
+    if (!confirm(`Delete vacation request for "${email}"?`)) return;
     try {
       await deleteVacation(id);
       await loadData();
@@ -126,10 +122,6 @@ export default function VacationAdmin() {
               <h3>{stats.averageDaysPerPerson}</h3>
               <p>Avg Days / Person</p>
             </div>
-            <div className="stat-card">
-              <h3>{Object.keys(stats.departmentStats).length}</h3>
-              <p>Departments</p>
-            </div>
           </div>
 
           {/* Monthly Distribution Chart */}
@@ -155,29 +147,6 @@ export default function VacationAdmin() {
               ))}
             </div>
           </div>
-
-          {/* Department Breakdown */}
-          {Object.keys(stats.departmentStats).length > 0 && (
-            <div style={{ marginTop: 20 }}>
-              <h3 style={{ color: 'var(--primary)', marginBottom: 15 }}>
-                Department Breakdown
-              </h3>
-              <div className="stats-grid">
-                {Object.entries(stats.departmentStats).map(([dept, data]) => (
-                  <div key={dept} className="stat-card">
-                    <h3>{data.totalDays}</h3>
-                    <p>
-                      {dept}
-                      <br />
-                      <small style={{ color: '#999' }}>
-                        {data.count} {data.count === 1 ? 'person' : 'people'}
-                      </small>
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Overlap Alerts */}
           {stats.overlapDates.length > 0 && (
@@ -210,7 +179,7 @@ export default function VacationAdmin() {
                         People
                       </th>
                       <th style={{ padding: '10px 12px', textAlign: 'left' }}>
-                        Details
+                        Employees
                       </th>
                     </tr>
                   </thead>
@@ -252,13 +221,7 @@ export default function VacationAdmin() {
                           </span>
                         </td>
                         <td style={{ padding: '10px 12px' }}>
-                          {Object.entries(o.departments).map(
-                            ([dept, names]) => (
-                              <span key={dept}>
-                                <strong>{dept}:</strong> {names.join(', ')}{' '}
-                              </span>
-                            )
-                          )}
+                          {o.employees.join(', ')}
                         </td>
                       </tr>
                     ))}
@@ -293,10 +256,10 @@ export default function VacationAdmin() {
                         #
                       </th>
                       <th style={{ padding: '10px 12px', textAlign: 'left' }}>
-                        Name
+                        Email
                       </th>
                       <th style={{ padding: '10px 12px', textAlign: 'left' }}>
-                        Department
+                        HR Code
                       </th>
                       <th
                         style={{
@@ -317,10 +280,8 @@ export default function VacationAdmin() {
                         <td style={{ padding: '10px 12px', fontWeight: 600 }}>
                           {i + 1}
                         </td>
-                        <td style={{ padding: '10px 12px' }}>{emp.name}</td>
-                        <td style={{ padding: '10px 12px' }}>
-                          {emp.department}
-                        </td>
+                        <td style={{ padding: '10px 12px' }}>{emp.email}</td>
+                        <td style={{ padding: '10px 12px' }}>{emp.hrCode}</td>
                         <td
                           style={{
                             padding: '10px 12px',
@@ -361,7 +322,7 @@ export default function VacationAdmin() {
               <label>Search</label>
               <input
                 type="text"
-                placeholder="Search by name, email or HR code..."
+                placeholder="Search by email or HR code..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
               />
@@ -375,20 +336,6 @@ export default function VacationAdmin() {
                 {[2024, 2025, 2026, 2027, 2028].map((y) => (
                   <option key={y} value={y}>
                     {y}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Department</label>
-              <select
-                value={deptFilter}
-                onChange={(e) => setDeptFilter(e.target.value)}
-              >
-                <option value="all">All Departments</option>
-                {DEPARTMENTS.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
                   </option>
                 ))}
               </select>
@@ -417,14 +364,12 @@ export default function VacationAdmin() {
               <div className="engineer-card" key={v._id}>
                 <div className="engineer-info">
                   <h4>
-                    {v.fullName}{' '}
+                    {v.email}{' '}
                     <span className="vacation-day-badge">
                       {v.totalDays} days
                     </span>
                   </h4>
-                  <p>
-                    {v.department} | {v.email} | HR: {v.hrCode}
-                  </p>
+                  <p>HR: {v.hrCode}</p>
                   <p style={{ color: '#999', fontSize: '0.85rem' }}>
                     Submitted:{' '}
                     {new Date(v.submittedAt).toLocaleDateString('en-US', {
@@ -453,7 +398,7 @@ export default function VacationAdmin() {
                       background: 'var(--danger)',
                       color: 'white',
                     }}
-                    onClick={() => handleDelete(v._id, v.fullName)}
+                    onClick={() => handleDelete(v._id, v.email)}
                   >
                     Delete
                   </button>
@@ -515,20 +460,12 @@ export default function VacationAdmin() {
               }}
             >
               <div>
-                <strong style={{ color: '#666' }}>Name</strong>
-                <p style={{ margin: '4px 0' }}>{viewingVacation.fullName}</p>
-              </div>
-              <div>
                 <strong style={{ color: '#666' }}>Email</strong>
                 <p style={{ margin: '4px 0' }}>{viewingVacation.email}</p>
               </div>
               <div>
                 <strong style={{ color: '#666' }}>HR Code</strong>
                 <p style={{ margin: '4px 0' }}>{viewingVacation.hrCode}</p>
-              </div>
-              <div>
-                <strong style={{ color: '#666' }}>Department</strong>
-                <p style={{ margin: '4px 0' }}>{viewingVacation.department}</p>
               </div>
               <div>
                 <strong style={{ color: '#666' }}>Year</strong>

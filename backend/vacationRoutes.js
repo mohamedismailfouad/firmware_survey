@@ -36,10 +36,8 @@ async function sendVacationEmails(vacation, isUpdate) {
       <div style="background: #ffffff; padding: 25px; border: 1px solid #e0e0e0;">
         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
           <h3 style="color: #1a5f7a; margin-top: 0;">Employee Details</h3>
-          <p style="margin: 5px 0;"><strong>Name:</strong> ${vacation.fullName}</p>
           <p style="margin: 5px 0;"><strong>Email:</strong> ${vacation.email}</p>
           <p style="margin: 5px 0;"><strong>HR Code:</strong> ${vacation.hrCode}</p>
-          <p style="margin: 5px 0;"><strong>Department:</strong> ${vacation.department}</p>
         </div>
         <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
           <h3 style="color: #1a5f7a; margin-top: 0;">
@@ -57,7 +55,7 @@ async function sendVacationEmails(vacation, isUpdate) {
     </div>
   `;
 
-  const subject = `${action} Vacation: ${vacation.fullName} - ${vacation.totalDays} days (${vacation.year})`;
+  const subject = `${action} Vacation: ${vacation.email} - ${vacation.totalDays} days (${vacation.year})`;
 
   // Send to employee
   await transporter.sendMail({
@@ -105,10 +103,10 @@ router.get('/export/csv', async (req, res) => {
 
     let csv =
       '\uFEFF' +
-      'Full Name,Email,HR Code,Department,Year,Total Days,Vacation Days,Submitted At\n';
+      'Email,HR Code,Year,Total Days,Vacation Days,Submitted At\n';
 
     vacations.forEach((v) => {
-      csv += `"${v.fullName}","${v.email}","${v.hrCode}","${v.department}",${v.year},${v.totalDays},"${v.vacationDays.join('; ')}","${new Date(v.submittedAt).toLocaleString()}"\n`;
+      csv += `"${v.email}","${v.hrCode}",${v.year},${v.totalDays},"${v.vacationDays.join('; ')}","${new Date(v.submittedAt).toLocaleString()}"\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -134,20 +132,10 @@ router.get('/stats', async (req, res) => {
       .sort((a, b) => b.totalDays - a.totalDays)
       .slice(0, 10)
       .map((v) => ({
-        name: v.fullName,
         email: v.email,
-        department: v.department,
+        hrCode: v.hrCode,
         totalDays: v.totalDays,
       }));
-
-    const departmentStats = {};
-    vacations.forEach((v) => {
-      if (!departmentStats[v.department]) {
-        departmentStats[v.department] = { count: 0, totalDays: 0 };
-      }
-      departmentStats[v.department].count++;
-      departmentStats[v.department].totalDays += v.totalDays;
-    });
 
     const monthlyDist = Array(12).fill(0);
     vacations.forEach((v) => {
@@ -160,18 +148,16 @@ router.get('/stats', async (req, res) => {
     const dateOverlap = {};
     vacations.forEach((v) => {
       v.vacationDays.forEach((day) => {
-        if (!dateOverlap[day]) dateOverlap[day] = {};
-        if (!dateOverlap[day][v.department])
-          dateOverlap[day][v.department] = [];
-        dateOverlap[day][v.department].push(v.fullName);
+        if (!dateOverlap[day]) dateOverlap[day] = [];
+        dateOverlap[day].push(v.email);
       });
     });
 
     const overlapDates = Object.entries(dateOverlap)
-      .map(([date, depts]) => ({
+      .map(([date, emails]) => ({
         date,
-        totalPeople: Object.values(depts).flat().length,
-        departments: depts,
+        totalPeople: emails.length,
+        employees: emails,
       }))
       .filter((o) => o.totalPeople >= 2)
       .sort((a, b) => b.totalPeople - a.totalPeople)
@@ -188,7 +174,6 @@ router.get('/stats', async (req, res) => {
           ) / 10
         : 0,
       topEmployees,
-      departmentStats,
       monthlyDistribution: monthlyDist,
       overlapDates,
     });
@@ -201,9 +186,6 @@ router.get('/stats', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const filter = {};
-    if (req.query.department && req.query.department !== 'all') {
-      filter.department = req.query.department;
-    }
     if (req.query.year) {
       filter.year = Number(req.query.year);
     }
@@ -233,17 +215,10 @@ router.get('/:id', async (req, res) => {
 // --- Create / Upsert ---
 router.post('/', async (req, res) => {
   try {
-    const { email, fullName, hrCode, department, year, vacationDays } =
-      req.body;
+    const { email, hrCode, year, vacationDays } = req.body;
 
-    if (
-      !email ||
-      !hrCode ||
-      !department ||
-      !year ||
-      !vacationDays?.length
-    ) {
-      return res.status(400).json({ error: 'Email, HR Code, Department, Year and Vacation Days are required' });
+    if (!email || !hrCode || !year || !vacationDays?.length) {
+      return res.status(400).json({ error: 'Email, HR Code, Year and Vacation Days are required' });
     }
 
     // Validate no past dates
@@ -258,9 +233,7 @@ router.post('/', async (req, res) => {
     const uniqueDays = [...new Set(vacationDays)].sort();
     const vacationData = {
       email: email.toLowerCase(),
-      fullName,
       hrCode,
-      department,
       year: Number(year),
       vacationDays: uniqueDays,
       totalDays: uniqueDays.length,

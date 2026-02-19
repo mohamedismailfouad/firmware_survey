@@ -2,8 +2,6 @@ const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api/vacations';
 
 export async function fetchVacations(filters = {}) {
   const params = new URLSearchParams();
-  if (filters.department && filters.department !== 'all')
-    params.set('department', filters.department);
   if (filters.year) params.set('year', filters.year);
   if (filters.email) params.set('email', filters.email);
 
@@ -65,9 +63,9 @@ export function exportVacationsCSV(vacations) {
   if (vacations.length === 0) return;
   let csv =
     '\uFEFF' +
-    'Full Name,Email,HR Code,Department,Year,Total Days,Vacation Days,Submitted At\n';
+    'Email,HR Code,Year,Total Days,Vacation Days,Submitted At\n';
   vacations.forEach((v) => {
-    csv += `"${v.fullName}","${v.email}","${v.hrCode}","${v.department}",${v.year},${v.totalDays},"${v.vacationDays.join('; ')}","${new Date(v.submittedAt).toLocaleString()}"\n`;
+    csv += `"${v.email}","${v.hrCode}",${v.year},${v.totalDays},"${v.vacationDays.join('; ')}","${new Date(v.submittedAt).toLocaleString()}"\n`;
   });
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
