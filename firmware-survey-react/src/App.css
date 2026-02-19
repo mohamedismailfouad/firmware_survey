@@ -880,6 +880,143 @@
   }
 }
 
+/* ========== Service Hub ========== */
+.service-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.service-card {
+  background: white;
+  border: 2px solid #eee;
+  border-top: 4px solid var(--primary);
+  border-radius: 12px;
+  padding: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.service-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+}
+
+.service-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+}
+
+.service-card p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.service-card-arrow {
+  position: absolute;
+  bottom: 15px;
+  right: 20px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  opacity: 0.4;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.service-card:hover .service-card-arrow {
+  opacity: 1;
+  transform: translateX(5px);
+}
+
+/* Service Date Selection */
+.service-date-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.service-date-chip {
+  padding: 10px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.service-date-chip:hover {
+  border-color: var(--accent);
+  background: #f0faf8;
+}
+
+.service-date-chip.selected {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  border-color: transparent;
+}
+
+.service-date-chip.urgent {
+  border-color: #f5cba7;
+}
+
+.service-date-chip.urgent:hover {
+  border-color: #e67e22;
+  background: #fef9e7;
+}
+
+.service-date-chip.urgent.selected {
+  background: linear-gradient(135deg, #e67e22, #f39c12);
+  border-color: transparent;
+}
+
+/* Admin Sub-Tabs */
+.admin-sub-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid var(--primary);
+}
+
+.admin-sub-tab {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  background: white;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-sub-tab:hover {
+  background: #f0f8ff;
+}
+
+.admin-sub-tab.active {
+  background: var(--primary);
+  color: white;
+}
+
+/* Responsive Service Hub */
+@media (max-width: 768px) {
+  .service-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .service-date-chip {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+}
+
 /* Print Styles */
 @media print {
   body {

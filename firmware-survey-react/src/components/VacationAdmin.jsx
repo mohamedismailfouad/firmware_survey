@@ -6,6 +6,12 @@ import {
   exportVacationsJSON,
   exportVacationsCSV,
 } from '../data/vacationUtils';
+import {
+  fetchServiceRequests,
+  deleteServiceRequest,
+  updateServiceStatus,
+  fetchServiceStats,
+} from '../data/serviceUtils';
 
 const MONTH_NAMES = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -17,7 +23,20 @@ const MONTH_FULL = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
+const TYPE_LABELS = {
+  work_from_home: 'Work From Home',
+  urgent_vacation: 'Urgent Vacation',
+  need_help: 'Need Help',
+};
+
+const STATUS_COLORS = {
+  pending: '#e67e22',
+  approved: '#27ae60',
+  rejected: '#e74c3c',
+};
+
 export default function VacationAdmin() {
+  const [adminTab, setAdminTab] = useState('vacations');
   const [vacations, setVacations] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -25,9 +44,24 @@ export default function VacationAdmin() {
   const [searchFilter, setSearchFilter] = useState('');
   const [viewingVacation, setViewingVacation] = useState(null);
 
+  // Service requests state
+  const [serviceRequests, setServiceRequests] = useState([]);
+  const [serviceStats, setServiceStats] = useState(null);
+  const [serviceLoading, setServiceLoading] = useState(false);
+  const [serviceTypeFilter, setServiceTypeFilter] = useState('');
+  const [serviceStatusFilter, setServiceStatusFilter] = useState('');
+  const [serviceSearchFilter, setServiceSearchFilter] = useState('');
+  const [viewingService, setViewingService] = useState(null);
+
   useEffect(() => {
     loadData();
   }, [yearFilter]);
+
+  useEffect(() => {
+    if (adminTab === 'services') {
+      loadServiceData();
+    }
+  }, [adminTab, serviceTypeFilter, serviceStatusFilter]);
 
   async function loadData() {
     setLoading(true);
@@ -44,6 +78,58 @@ export default function VacationAdmin() {
       setLoading(false);
     }
   }
+
+  async function loadServiceData() {
+    setServiceLoading(true);
+    try {
+      const filters = {};
+      if (serviceTypeFilter) filters.type = serviceTypeFilter;
+      if (serviceStatusFilter) filters.status = serviceStatusFilter;
+      const [reqData, statsData] = await Promise.all([
+        fetchServiceRequests(filters),
+        fetchServiceStats(),
+      ]);
+      setServiceRequests(reqData);
+      setServiceStats(statsData);
+    } catch (err) {
+      console.error('Failed to load service requests:', err);
+    } finally {
+      setServiceLoading(false);
+    }
+  }
+
+  async function handleDeleteService(id, email) {
+    if (!confirm(`Delete service request from "${email}"?`)) return;
+    try {
+      await deleteServiceRequest(id);
+      await loadServiceData();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  async function handleStatusChange(id, newStatus) {
+    try {
+      await updateServiceStatus(id, newStatus);
+      await loadServiceData();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  const filteredServiceRequests = useMemo(() => {
+    return serviceRequests.filter((r) => {
+      if (serviceSearchFilter) {
+        const s = serviceSearchFilter.toLowerCase();
+        if (
+          !r.email.toLowerCase().includes(s) &&
+          !r.hrCode.toLowerCase().includes(s)
+        )
+          return false;
+      }
+      return true;
+    });
+  }, [serviceRequests, serviceSearchFilter]);
 
   const filteredVacations = useMemo(() => {
     return vacations.filter((v) => {
@@ -90,7 +176,7 @@ export default function VacationAdmin() {
     return Object.entries(grouped);
   }
 
-  if (loading) {
+  if (loading && adminTab === 'vacations') {
     return (
       <div className="card" style={{ textAlign: 'center', padding: 40 }}>
         <h3 style={{ color: 'var(--primary)' }}>Loading vacation data...</h3>
@@ -103,6 +189,24 @@ export default function VacationAdmin() {
     : 1;
 
   return (
+    <div>
+      {/* Admin Sub-Tabs */}
+      <div className="admin-sub-tabs">
+        <button
+          className={`admin-sub-tab ${adminTab === 'vacations' ? 'active' : ''}`}
+          onClick={() => setAdminTab('vacations')}
+        >
+          Vacations
+        </button>
+        <button
+          className={`admin-sub-tab ${adminTab === 'services' ? 'active' : ''}`}
+          onClick={() => setAdminTab('services')}
+        >
+          Service Requests
+        </button>
+      </div>
+
+    {adminTab === 'vacations' && (
     <div>
       {/* Stats Dashboard */}
       {stats && (
@@ -516,6 +620,337 @@ export default function VacationAdmin() {
           </div>
         </div>
       )}
+    </div>
+    )}
+
+    {/* ========== SERVICE REQUESTS TAB ========== */}
+    {adminTab === 'services' && (
+    <div>
+      {/* Service Stats */}
+      {serviceStats && (
+        <div className="card">
+          <h2 className="card-title">Service Requests Overview</h2>
+          <div className="stats-grid">
+            <div className="stat-card">
+              <h3>{serviceStats.totalRequests}</h3>
+              <p>Total Requests</p>
+            </div>
+            <div className="stat-card">
+              <h3>{serviceStats.byStatus?.pending || 0}</h3>
+              <p>Pending</p>
+            </div>
+            <div className="stat-card">
+              <h3>{serviceStats.byStatus?.approved || 0}</h3>
+              <p>Approved</p>
+            </div>
+            <div className="stat-card">
+              <h3>{serviceStats.byStatus?.rejected || 0}</h3>
+              <p>Rejected</p>
+            </div>
+          </div>
+
+          {serviceStats.byType && Object.keys(serviceStats.byType).length > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <h3 style={{ color: 'var(--primary)', marginBottom: 15 }}>
+                By Type
+              </h3>
+              <div className="stats-grid">
+                {Object.entries(serviceStats.byType).map(([type, count]) => (
+                  <div className="stat-card" key={type}>
+                    <h3>{count}</h3>
+                    <p>{TYPE_LABELS[type] || type}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Service Requests List */}
+      <div className="card">
+        <h2 className="card-title">All Service Requests</h2>
+
+        <div
+          style={{
+            background: '#f8f9fa',
+            padding: 20,
+            borderRadius: 12,
+            marginBottom: 20,
+          }}
+        >
+          <h3 style={{ marginBottom: 15, color: 'var(--primary)' }}>Filters</h3>
+          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+            <div className="form-group">
+              <label>Search</label>
+              <input
+                type="text"
+                placeholder="Search by email or HR code..."
+                value={serviceSearchFilter}
+                onChange={(e) => setServiceSearchFilter(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Type</label>
+              <select
+                value={serviceTypeFilter}
+                onChange={(e) => setServiceTypeFilter(e.target.value)}
+              >
+                <option value="">All Types</option>
+                <option value="work_from_home">Work From Home</option>
+                <option value="urgent_vacation">Urgent Vacation</option>
+                <option value="need_help">Need Help</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Status</label>
+              <select
+                value={serviceStatusFilter}
+                onChange={(e) => setServiceStatusFilter(e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {serviceLoading ? (
+          <div style={{ textAlign: 'center', padding: 40 }}>
+            <h3 style={{ color: 'var(--primary)' }}>Loading service requests...</h3>
+          </div>
+        ) : (
+          <>
+            <p style={{ color: '#666', marginBottom: 15 }}>
+              Showing {filteredServiceRequests.length} of {serviceRequests.length} requests
+            </p>
+
+            {filteredServiceRequests.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
+                <h3>No service requests found</h3>
+                <p>Try adjusting your filters.</p>
+              </div>
+            ) : (
+              <div className="engineer-list">
+                {filteredServiceRequests.map((r) => (
+                  <div className="engineer-card" key={r._id}>
+                    <div className="engineer-info">
+                      <h4>
+                        {r.email}{' '}
+                        <span
+                          className="vacation-day-badge"
+                          style={{
+                            background: STATUS_COLORS[r.status],
+                          }}
+                        >
+                          {r.status}
+                        </span>
+                      </h4>
+                      <p>
+                        <strong>{TYPE_LABELS[r.type] || r.type}</strong> | HR: {r.hrCode}
+                      </p>
+                      {r.dates && r.dates.length > 0 && (
+                        <p style={{ fontSize: '0.85rem', color: '#666' }}>
+                          {r.dates.length} day(s): {r.dates.map((d) => formatDate(d)).join(', ')}
+                        </p>
+                      )}
+                      <p style={{ color: '#999', fontSize: '0.85rem' }}>
+                        Submitted:{' '}
+                        {new Date(r.submittedAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                    <div className="engineer-actions">
+                      <button
+                        className="btn btn-sm"
+                        style={{ background: 'var(--secondary)', color: 'white' }}
+                        onClick={() => setViewingService(r)}
+                      >
+                        View
+                      </button>
+                      {r.status === 'pending' && (
+                        <>
+                          <button
+                            className="btn btn-sm"
+                            style={{ background: '#27ae60', color: 'white' }}
+                            onClick={() => handleStatusChange(r._id, 'approved')}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="btn btn-sm"
+                            style={{ background: '#e74c3c', color: 'white' }}
+                            onClick={() => handleStatusChange(r._id, 'rejected')}
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                      <button
+                        className="btn btn-sm"
+                        style={{ background: 'var(--danger)', color: 'white' }}
+                        onClick={() => handleDeleteService(r._id, r.email)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="btn-group" style={{ marginTop: 20 }}>
+              <button className="btn btn-primary" onClick={loadServiceData}>
+                Refresh
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Service View Modal */}
+      {viewingService && (
+        <div
+          className="modal-overlay"
+          onClick={() => setViewingService(null)}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 600, maxHeight: '80vh', overflow: 'auto' }}
+          >
+            <h2
+              style={{
+                color: 'var(--primary)',
+                marginBottom: 20,
+                borderBottom: '2px solid var(--accent)',
+                paddingBottom: 10,
+              }}
+            >
+              Service Request Details
+            </h2>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 15,
+                marginBottom: 20,
+              }}
+            >
+              <div>
+                <strong style={{ color: '#666' }}>Email</strong>
+                <p style={{ margin: '4px 0' }}>{viewingService.email}</p>
+              </div>
+              <div>
+                <strong style={{ color: '#666' }}>HR Code</strong>
+                <p style={{ margin: '4px 0' }}>{viewingService.hrCode}</p>
+              </div>
+              <div>
+                <strong style={{ color: '#666' }}>Type</strong>
+                <p style={{ margin: '4px 0', fontWeight: 600 }}>
+                  {TYPE_LABELS[viewingService.type] || viewingService.type}
+                </p>
+              </div>
+              <div>
+                <strong style={{ color: '#666' }}>Status</strong>
+                <p style={{ margin: '4px 0' }}>
+                  <span
+                    className="vacation-day-badge"
+                    style={{ background: STATUS_COLORS[viewingService.status] }}
+                  >
+                    {viewingService.status}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {viewingService.dates && viewingService.dates.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <h3 style={{ color: 'var(--primary)', marginBottom: 10 }}>
+                  Requested Dates ({viewingService.dates.length} days)
+                </h3>
+                <div className="vacation-tags">
+                  {viewingService.dates.map((day) => (
+                    <span
+                      key={day}
+                      className="vacation-tag"
+                      style={{ cursor: 'default' }}
+                    >
+                      {formatDate(day)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {viewingService.reason && (
+              <div style={{ marginBottom: 20 }}>
+                <h3 style={{ color: 'var(--primary)', marginBottom: 10 }}>
+                  Reason / Details
+                </h3>
+                <div
+                  style={{
+                    background: '#f8f9fa',
+                    padding: 15,
+                    borderRadius: 8,
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {viewingService.reason}
+                </div>
+              </div>
+            )}
+
+            <p style={{ color: '#999', fontSize: '0.85rem' }}>
+              Submitted: {new Date(viewingService.submittedAt).toLocaleString()}
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              {viewingService.status === 'pending' && (
+                <>
+                  <button
+                    className="btn btn-sm"
+                    style={{ background: '#27ae60', color: 'white' }}
+                    onClick={() => {
+                      handleStatusChange(viewingService._id, 'approved');
+                      setViewingService(null);
+                    }}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    className="btn btn-sm"
+                    style={{ background: '#e74c3c', color: 'white' }}
+                    onClick={() => {
+                      handleStatusChange(viewingService._id, 'rejected');
+                      setViewingService(null);
+                    }}
+                  >
+                    Reject
+                  </button>
+                </>
+              )}
+              <button
+                className="btn btn-secondary"
+                onClick={() => setViewingService(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+    )}
     </div>
   );
 }

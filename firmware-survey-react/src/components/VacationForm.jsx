@@ -2,10 +2,10 @@ import { useState } from 'react';
 import VacationCalendar from './VacationCalendar';
 import { createVacation, fetchVacations } from '../data/vacationUtils';
 
-export default function VacationForm() {
+export default function VacationForm({ initialEmail = '', initialHrCode = '' }) {
   const [form, setForm] = useState({
-    email: '',
-    hrCode: '',
+    email: initialEmail,
+    hrCode: initialHrCode,
   });
   const [selectedDays, setSelectedDays] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -183,7 +183,7 @@ export default function VacationForm() {
               placeholder="name@azka.com.eg"
               value={form.email}
               onChange={(e) => updateField('email', e.target.value)}
-              disabled={editMode}
+              disabled={editMode || !!initialEmail}
             />
           </div>
           <div className="form-group">
@@ -194,12 +194,12 @@ export default function VacationForm() {
               placeholder="e.g. 1230035"
               value={form.hrCode}
               onChange={(e) => updateField('hrCode', e.target.value)}
-              disabled={editMode}
+              disabled={editMode || !!initialHrCode}
             />
           </div>
         </div>
 
-        {!editMode && (
+        {!editMode && !initialEmail && (
           <div style={{ marginTop: 15, paddingTop: 15, borderTop: '1px solid #eee' }}>
             <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: 10 }}>
               Already submitted? Enter your email or HR code above and load your existing request to edit it.

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import SurveyForm from './components/SurveyForm';
 import ExpertiseMatrix from './components/ExpertiseMatrix';
 import AllResponses from './components/AllResponses';
-import VacationForm from './components/VacationForm';
+import ServiceHub from './components/ServiceHub';
 import VacationAdmin from './components/VacationAdmin';
 import {
   fetchSurveys,
@@ -17,10 +17,10 @@ import './App.css';
 
 const TABS = [
   { key: 'survey', label: 'Survey Form', public: true },
-  { key: 'vacations', label: 'Annual Vacations', public: true },
+  { key: 'services', label: 'Employee Services', public: true },
   { key: 'matrix', label: 'Expertise Matrix', public: false },
   { key: 'data', label: 'All Responses', public: false },
-  { key: 'vacationAdmin', label: 'Vacations Admin', public: false },
+  { key: 'servicesAdmin', label: 'Services Admin', public: false },
 ];
 
 export default function App() {
@@ -233,7 +233,7 @@ export default function App() {
         />
       )}
 
-      {activeTab === 'vacations' && <VacationForm />}
+      {activeTab === 'services' && <ServiceHub />}
 
       {activeTab === 'data' && (
         <AllResponses
@@ -245,7 +245,7 @@ export default function App() {
         />
       )}
 
-      {activeTab === 'vacationAdmin' && <VacationAdmin />}
+      {activeTab === 'servicesAdmin' && <VacationAdmin />}
     </div>
   );
 }
