@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import surveyRoutes from './routes.js';
 import authRoutes from './authRoutes.js';
+import vacationRoutes from './vacationRoutes.js';
 import Admin from './Admin.js';
 
 const app = express();
@@ -46,6 +47,7 @@ app.get('/', (req, res) => {
 
 // Routes
 app.use('/api/surveys', surveyRoutes);
+app.use('/api/vacations', vacationRoutes);
 app.use('/api/auth', authRoutes);
 
 // For local development

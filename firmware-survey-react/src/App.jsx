@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import SurveyForm from './components/SurveyForm';
 import ExpertiseMatrix from './components/ExpertiseMatrix';
 import AllResponses from './components/AllResponses';
+import VacationForm from './components/VacationForm';
+import VacationAdmin from './components/VacationAdmin';
 import {
   fetchSurveys,
   createSurvey,
@@ -14,9 +16,11 @@ import {
 import './App.css';
 
 const TABS = [
-  { key: 'survey', label: 'Survey Form' },
-  { key: 'matrix', label: 'Expertise Matrix' },
-  { key: 'data', label: 'All Responses' },
+  { key: 'survey', label: 'Survey Form', public: true },
+  { key: 'vacations', label: 'Annual Vacations', public: true },
+  { key: 'matrix', label: 'Expertise Matrix', public: false },
+  { key: 'data', label: 'All Responses', public: false },
+  { key: 'vacationAdmin', label: 'Vacations Admin', public: false },
 ];
 
 export default function App() {
@@ -35,7 +39,7 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  const visibleTabs = isAdmin ? TABS : TABS.filter((t) => t.key === 'survey');
+  const visibleTabs = isAdmin ? TABS : TABS.filter((t) => t.public);
 
   useEffect(() => {
     loadData();
@@ -229,6 +233,8 @@ export default function App() {
         />
       )}
 
+      {activeTab === 'vacations' && <VacationForm />}
+
       {activeTab === 'data' && (
         <AllResponses
           surveyData={surveyData}
@@ -238,6 +244,8 @@ export default function App() {
           onClearAll={handleClearAll}
         />
       )}
+
+      {activeTab === 'vacationAdmin' && <VacationAdmin />}
     </div>
   );
 }
