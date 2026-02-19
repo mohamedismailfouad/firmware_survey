@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import VacationCalendar from './VacationCalendar';
 import { DEPARTMENTS } from '../data/constants';
-import { createVacation } from '../data/vacationUtils';
+import { createVacation, fetchVacations } from '../data/vacationUtils';
 
 export default function VacationForm() {
   const [form, setForm] = useState({
@@ -12,7 +12,9 @@ export default function VacationForm() {
   });
   const [selectedDays, setSelectedDays] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [editMode, setEditMode] = useState(false);
 
   const currentYear = new Date().getFullYear();
 
@@ -35,6 +37,71 @@ export default function VacationForm() {
   function clearAll() {
     setSelectedDays([]);
     setSubmitStatus(null);
+    setEditMode(false);
+  }
+
+  function resetForm() {
+    setForm({ email: '', fullName: '', hrCode: '', department: '' });
+    setSelectedDays([]);
+    setSubmitStatus(null);
+    setEditMode(false);
+  }
+
+  async function handleLoadExisting() {
+    if (!form.email && !form.hrCode) {
+      setSubmitStatus({
+        type: 'error',
+        message: 'Please enter your Email or HR Code to load your existing vacation.',
+      });
+      return;
+    }
+
+    setLoadingExisting(true);
+    setSubmitStatus(null);
+    try {
+      const filters = { year: currentYear };
+      if (form.email) filters.email = form.email;
+
+      const results = await fetchVacations(filters);
+
+      // If searched by email, filter exact match; if also by hrCode, match either
+      let match = null;
+      if (form.email) {
+        match = results.find(
+          (v) => v.email.toLowerCase() === form.email.toLowerCase()
+        );
+      }
+      if (!match && form.hrCode) {
+        const allResults = await fetchVacations({ year: currentYear });
+        match = allResults.find(
+          (v) => v.hrCode.toLowerCase() === form.hrCode.toLowerCase()
+        );
+      }
+
+      if (match) {
+        setForm({
+          email: match.email,
+          fullName: match.fullName,
+          hrCode: match.hrCode,
+          department: match.department,
+        });
+        setSelectedDays([...match.vacationDays].sort());
+        setEditMode(true);
+        setSubmitStatus({
+          type: 'success',
+          message: `Loaded your existing vacation request (${match.totalDays} days). You can now edit your days and resubmit.`,
+        });
+      } else {
+        setSubmitStatus({
+          type: 'error',
+          message: 'No existing vacation request found for this email/HR code. You can submit a new one.',
+        });
+      }
+    } catch (err) {
+      setSubmitStatus({ type: 'error', message: err.message });
+    } finally {
+      setLoadingExisting(false);
+    }
   }
 
   async function handleSubmit(e) {
@@ -65,6 +132,7 @@ export default function VacationForm() {
       });
       setForm({ email: '', fullName: '', hrCode: '', department: '' });
       setSelectedDays([]);
+      setEditMode(false);
     } catch (err) {
       setSubmitStatus({ type: 'error', message: err.message });
     } finally {
@@ -97,11 +165,20 @@ export default function VacationForm() {
   return (
     <form onSubmit={handleSubmit}>
       <div className="card">
-        <h2 className="card-title">Annual Vacation Request {currentYear}</h2>
+        <h2 className="card-title">
+          {editMode ? 'Edit Vacation Request' : 'Annual Vacation Request'} {currentYear}
+        </h2>
         <p style={{ marginBottom: 20, color: '#666' }}>
-          Select your planned vacation days for {currentYear}. A confirmation
-          email will be sent to you and the admin upon submission.
+          {editMode
+            ? 'Edit your vacation days below. Add or remove days, then click Update to save changes.'
+            : 'Select your planned vacation days for ' + currentYear + '. A confirmation email will be sent to you and the admin upon submission.'}
         </p>
+
+        {editMode && (
+          <div className="vacation-status success" style={{ marginBottom: 20 }}>
+            Editing mode - Modify your days and click "Update Vacation Request" to save.
+          </div>
+        )}
 
         <div className="form-grid">
           <div className="form-group">
@@ -112,6 +189,7 @@ export default function VacationForm() {
               placeholder="Enter your full name"
               value={form.fullName}
               onChange={(e) => updateField('fullName', e.target.value)}
+              disabled={editMode}
             />
           </div>
           <div className="form-group">
@@ -122,6 +200,7 @@ export default function VacationForm() {
               placeholder="name@azka.com.eg"
               value={form.email}
               onChange={(e) => updateField('email', e.target.value)}
+              disabled={editMode}
             />
           </div>
           <div className="form-group">
@@ -132,6 +211,7 @@ export default function VacationForm() {
               placeholder="e.g. 1230035"
               value={form.hrCode}
               onChange={(e) => updateField('hrCode', e.target.value)}
+              disabled={editMode}
             />
           </div>
           <div className="form-group">
@@ -140,6 +220,7 @@ export default function VacationForm() {
               required
               value={form.department}
               onChange={(e) => updateField('department', e.target.value)}
+              disabled={editMode}
             >
               <option value="">Select Department</option>
               {DEPARTMENTS.map((d) => (
@@ -150,6 +231,36 @@ export default function VacationForm() {
             </select>
           </div>
         </div>
+
+        {!editMode && (
+          <div style={{ marginTop: 15, paddingTop: 15, borderTop: '1px solid #eee' }}>
+            <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: 10 }}>
+              Already submitted? Enter your email or HR code above and load your existing request to edit it.
+            </p>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleLoadExisting}
+              disabled={loadingExisting}
+              style={{ fontSize: '0.9rem' }}
+            >
+              {loadingExisting ? 'Loading...' : 'Load My Existing Vacation'}
+            </button>
+          </div>
+        )}
+
+        {editMode && (
+          <div style={{ marginTop: 15 }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={resetForm}
+              style={{ fontSize: '0.85rem' }}
+            >
+              Cancel Editing
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="card">
@@ -237,7 +348,11 @@ export default function VacationForm() {
           className="btn btn-primary"
           disabled={submitting || selectedDays.length === 0}
         >
-          {submitting ? 'Submitting...' : `Submit Vacation Request (${selectedDays.length} days)`}
+          {submitting
+            ? 'Submitting...'
+            : editMode
+              ? `Update Vacation Request (${selectedDays.length} days)`
+              : `Submit Vacation Request (${selectedDays.length} days)`}
         </button>
         <button type="button" className="btn btn-secondary" onClick={clearAll}>
           Clear Selection
