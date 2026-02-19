@@ -182,11 +182,10 @@ export default function VacationForm() {
 
         <div className="form-grid">
           <div className="form-group">
-            <label className="required">Full Name</label>
+            <label>Full Name</label>
             <input
               type="text"
-              required
-              placeholder="Enter your full name"
+              placeholder="Enter your full name (optional)"
               value={form.fullName}
               onChange={(e) => updateField('fullName', e.target.value)}
               disabled={editMode}

@@ -238,13 +238,12 @@ router.post('/', async (req, res) => {
 
     if (
       !email ||
-      !fullName ||
       !hrCode ||
       !department ||
       !year ||
       !vacationDays?.length
     ) {
-      return res.status(400).json({ error: 'All fields are required' });
+      return res.status(400).json({ error: 'Email, HR Code, Department, Year and Vacation Days are required' });
     }
 
     // Validate no past dates

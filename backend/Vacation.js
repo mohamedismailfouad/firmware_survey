@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const vacationSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, trim: true, lowercase: true },
-    fullName: { type: String, required: true, trim: true },
+    fullName: { type: String, trim: true, default: '' },
     hrCode: { type: String, required: true, trim: true },
     department: {
       type: String,
