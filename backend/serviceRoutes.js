@@ -210,15 +210,36 @@ router.post('/', async (req, res) => {
       submittedAt: new Date(),
     };
 
-    const serviceRequest = new ServiceRequest(requestData);
-    await serviceRequest.save();
+    // Check for existing pending request of same type from same email
+    const existing = await ServiceRequest.findOne({
+      email: requestData.email,
+      type: requestData.type,
+      status: 'pending',
+    });
+
+    let serviceRequest;
+    let isUpdate = false;
+    if (existing) {
+      serviceRequest = await ServiceRequest.findByIdAndUpdate(
+        existing._id,
+        requestData,
+        { new: true, runValidators: true }
+      );
+      isUpdate = true;
+    } else {
+      serviceRequest = new ServiceRequest(requestData);
+      await serviceRequest.save();
+    }
 
     // Send emails (non-blocking)
-    sendServiceEmail(serviceRequest.toObject(), false).catch((err) => {
+    sendServiceEmail(serviceRequest.toObject(), isUpdate).catch((err) => {
       console.error('Service request email failed:', err);
     });
 
-    res.status(201).json(serviceRequest.toObject());
+    res.status(isUpdate ? 200 : 201).json({
+      ...serviceRequest.toObject(),
+      isUpdate,
+    });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

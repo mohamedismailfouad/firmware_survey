@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import VacationCalendar from './VacationCalendar';
 import { createVacation, fetchVacations } from '../data/vacationUtils';
 
@@ -12,8 +12,17 @@ export default function VacationForm({ initialEmail = '', initialHrCode = '' }) 
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
   const [editMode, setEditMode] = useState(false);
+  const autoLoaded = useRef(false);
 
   const currentYear = new Date().getFullYear();
+
+  // Auto-load existing vacation when credentials are provided from ServiceHub
+  useEffect(() => {
+    if (initialEmail && initialHrCode && !autoLoaded.current) {
+      autoLoaded.current = true;
+      handleLoadExisting();
+    }
+  }, [initialEmail, initialHrCode]);
 
   function updateField(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -38,7 +47,7 @@ export default function VacationForm({ initialEmail = '', initialHrCode = '' }) 
   }
 
   function resetForm() {
-    setForm({ email: '', hrCode: '' });
+    setForm({ email: initialEmail || '', hrCode: initialHrCode || '' });
     setSelectedDays([]);
     setSubmitStatus(null);
     setEditMode(false);
@@ -124,7 +133,7 @@ export default function VacationForm({ initialEmail = '', initialHrCode = '' }) 
           ? `Vacation request updated successfully! ${selectedDays.length} day(s) recorded. Confirmation emails sent.`
           : `Vacation request submitted successfully! ${selectedDays.length} day(s) recorded. Confirmation emails sent to you and the admin.`,
       });
-      setForm({ email: '', hrCode: '' });
+      setForm({ email: initialEmail || '', hrCode: initialHrCode || '' });
       setSelectedDays([]);
       setEditMode(false);
     } catch (err) {
@@ -199,10 +208,10 @@ export default function VacationForm({ initialEmail = '', initialHrCode = '' }) 
           </div>
         </div>
 
-        {!editMode && !initialEmail && (
+        {!editMode && (
           <div style={{ marginTop: 15, paddingTop: 15, borderTop: '1px solid #eee' }}>
             <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: 10 }}>
-              Already submitted? Enter your email or HR code above and load your existing request to edit it.
+              Already submitted? Load your existing request to edit it.
             </p>
             <button
               type="button"

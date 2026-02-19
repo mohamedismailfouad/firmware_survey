@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import VacationForm from './VacationForm';
-import { createServiceRequest } from '../data/serviceUtils';
+import { createServiceRequest, fetchServiceRequests } from '../data/serviceUtils';
 
 const SERVICE_TYPES = [
   {
@@ -46,9 +46,14 @@ export default function ServiceHub() {
   // Need Help state
   const [helpMessage, setHelpMessage] = useState('');
 
+  // Edit mode tracking
+  const [editingId, setEditingId] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+
   // Shared
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [loadingExisting, setLoadingExisting] = useState(false);
 
   function handleCredentialsSubmit(e) {
     e.preventDefault();
@@ -79,11 +84,52 @@ export default function ServiceHub() {
     setUrgentReason('');
     setHelpMessage('');
     setSubmitStatus(null);
+    setEditingId(null);
+    setIsEditing(false);
   }
 
-  function handleSelectService(key) {
+  async function handleSelectService(key) {
     resetForms();
     setSelectedService(key);
+
+    // For non-vacation services, check for existing pending request
+    if (key !== 'annual_vacation') {
+      const typeMap = {
+        work_from_home: 'work_from_home',
+        urgent_vacation: 'urgent_vacation',
+        need_help: 'need_help',
+      };
+      setLoadingExisting(true);
+      try {
+        const existing = await fetchServiceRequests({
+          email: credentials.email,
+          type: typeMap[key],
+          status: 'pending',
+        });
+        if (existing.length > 0) {
+          const req = existing[0];
+          setEditingId(req._id);
+          setIsEditing(true);
+          if (key === 'work_from_home') {
+            setWfhDates(req.dates || []);
+            setWfhReason(req.reason || '');
+          } else if (key === 'urgent_vacation') {
+            setUrgentDates(req.dates || []);
+            setUrgentReason(req.reason || '');
+          } else if (key === 'need_help') {
+            setHelpMessage(req.reason || '');
+          }
+          setSubmitStatus({
+            type: 'success',
+            message: 'You have an existing pending request. You can edit it below and resubmit.',
+          });
+        }
+      } catch (err) {
+        // Silently fail - user can still submit new
+      } finally {
+        setLoadingExisting(false);
+      }
+    }
   }
 
   // --- Date helpers for WFH and Urgent Vacation ---
@@ -151,7 +197,7 @@ export default function ServiceHub() {
     setSubmitting(true);
     setSubmitStatus(null);
     try {
-      await createServiceRequest({
+      const result = await createServiceRequest({
         email: credentials.email,
         hrCode: credentials.hrCode,
         type: 'work_from_home',
@@ -160,10 +206,11 @@ export default function ServiceHub() {
       });
       setSubmitStatus({
         type: 'success',
-        message: `Work From Home request submitted successfully for ${wfhDates.length} day(s). Confirmation emails sent.`,
+        message: result.isUpdate
+          ? `Work From Home request updated successfully for ${wfhDates.length} day(s). Confirmation emails sent.`
+          : `Work From Home request submitted successfully for ${wfhDates.length} day(s). Confirmation emails sent.`,
       });
-      setWfhDates([]);
-      setWfhReason('');
+      setIsEditing(true);
     } catch (err) {
       setSubmitStatus({ type: 'error', message: err.message });
     } finally {
@@ -180,7 +227,7 @@ export default function ServiceHub() {
     setSubmitting(true);
     setSubmitStatus(null);
     try {
-      await createServiceRequest({
+      const result = await createServiceRequest({
         email: credentials.email,
         hrCode: credentials.hrCode,
         type: 'urgent_vacation',
@@ -189,10 +236,11 @@ export default function ServiceHub() {
       });
       setSubmitStatus({
         type: 'success',
-        message: `Urgent Vacation request submitted successfully for ${urgentDates.length} day(s). Confirmation emails sent.`,
+        message: result.isUpdate
+          ? `Urgent Vacation request updated successfully for ${urgentDates.length} day(s). Confirmation emails sent.`
+          : `Urgent Vacation request submitted successfully for ${urgentDates.length} day(s). Confirmation emails sent.`,
       });
-      setUrgentDates([]);
-      setUrgentReason('');
+      setIsEditing(true);
     } catch (err) {
       setSubmitStatus({ type: 'error', message: err.message });
     } finally {
@@ -209,7 +257,7 @@ export default function ServiceHub() {
     setSubmitting(true);
     setSubmitStatus(null);
     try {
-      await createServiceRequest({
+      const result = await createServiceRequest({
         email: credentials.email,
         hrCode: credentials.hrCode,
         type: 'need_help',
@@ -217,9 +265,11 @@ export default function ServiceHub() {
       });
       setSubmitStatus({
         type: 'success',
-        message: 'Your request has been submitted successfully. You will receive a confirmation email shortly.',
+        message: result.isUpdate
+          ? 'Your help request has been updated successfully. Confirmation email sent.'
+          : 'Your request has been submitted successfully. You will receive a confirmation email shortly.',
       });
-      setHelpMessage('');
+      setIsEditing(true);
     } catch (err) {
       setSubmitStatus({ type: 'error', message: err.message });
     } finally {
@@ -357,8 +407,16 @@ export default function ServiceHub() {
         <form onSubmit={handleSubmitWFH}>
           <div className="card">
             <h2 className="card-title" style={{ color: '#159895' }}>
-              Request Work From Home
+              {isEditing ? 'Edit Work From Home Request' : 'Request Work From Home'}
             </h2>
+            {isEditing && (
+              <div className="vacation-status success" style={{ marginBottom: 15 }}>
+                Editing your existing request. Modify and resubmit to update.
+              </div>
+            )}
+            {loadingExisting && (
+              <p style={{ color: 'var(--primary)', marginBottom: 15 }}>Checking for existing request...</p>
+            )}
             <p style={{ marginBottom: 20, color: '#666' }}>
               Select the dates you would like to work from home. You can select multiple days within the next 30 days.
             </p>
@@ -424,7 +482,7 @@ export default function ServiceHub() {
               className="btn btn-primary"
               disabled={submitting || wfhDates.length === 0}
             >
-              {submitting ? 'Submitting...' : `Submit WFH Request (${wfhDates.length} days)`}
+              {submitting ? 'Submitting...' : isEditing ? `Update WFH Request (${wfhDates.length} days)` : `Submit WFH Request (${wfhDates.length} days)`}
             </button>
             <button type="button" className="btn btn-secondary" onClick={handleBack}>
               Cancel
@@ -454,8 +512,16 @@ export default function ServiceHub() {
         <form onSubmit={handleSubmitUrgent}>
           <div className="card">
             <h2 className="card-title" style={{ color: '#e67e22' }}>
-              Request Urgent Vacation
+              {isEditing ? 'Edit Urgent Vacation Request' : 'Request Urgent Vacation'}
             </h2>
+            {isEditing && (
+              <div className="vacation-status success" style={{ marginBottom: 15 }}>
+                Editing your existing request. Modify and resubmit to update.
+              </div>
+            )}
+            {loadingExisting && (
+              <p style={{ color: 'var(--primary)', marginBottom: 15 }}>Checking for existing request...</p>
+            )}
             <p style={{ marginBottom: 20, color: '#666' }}>
               Select up to 3 days starting from today for your urgent vacation request.
             </p>
@@ -527,7 +593,7 @@ export default function ServiceHub() {
               style={{ background: '#e67e22' }}
               disabled={submitting || urgentDates.length === 0}
             >
-              {submitting ? 'Submitting...' : `Submit Urgent Vacation (${urgentDates.length} days)`}
+              {submitting ? 'Submitting...' : isEditing ? `Update Urgent Vacation (${urgentDates.length} days)` : `Submit Urgent Vacation (${urgentDates.length} days)`}
             </button>
             <button type="button" className="btn btn-secondary" onClick={handleBack}>
               Cancel
@@ -556,8 +622,16 @@ export default function ServiceHub() {
         <form onSubmit={handleSubmitHelp}>
           <div className="card">
             <h2 className="card-title" style={{ color: '#8e44ad' }}>
-              Need Help
+              {isEditing ? 'Edit Help Request' : 'Need Help'}
             </h2>
+            {isEditing && (
+              <div className="vacation-status success" style={{ marginBottom: 15 }}>
+                Editing your existing request. Modify and resubmit to update.
+              </div>
+            )}
+            {loadingExisting && (
+              <p style={{ color: 'var(--primary)', marginBottom: 15 }}>Checking for existing request...</p>
+            )}
             <p style={{ marginBottom: 20, color: '#666' }}>
               Describe the issue or assistance you need. Your request will be sent to management for review.
             </p>
@@ -588,7 +662,7 @@ export default function ServiceHub() {
               style={{ background: '#8e44ad' }}
               disabled={submitting || !helpMessage.trim()}
             >
-              {submitting ? 'Submitting...' : 'Submit Help Request'}
+              {submitting ? 'Submitting...' : isEditing ? 'Update Help Request' : 'Submit Help Request'}
             </button>
             <button type="button" className="btn btn-secondary" onClick={handleBack}>
               Cancel
