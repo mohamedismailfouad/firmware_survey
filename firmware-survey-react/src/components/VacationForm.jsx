@@ -43,7 +43,8 @@ export default function VacationForm({ initialEmail = '', initialHrCode = '' }) 
   function clearAll() {
     setSelectedDays([]);
     setSubmitStatus(null);
-    setEditMode(false);
+    // Don't exit editMode - the record still exists in DB.
+    // User is just clearing the calendar selection, not canceling the edit.
   }
 
   function resetForm() {
@@ -94,12 +95,14 @@ export default function VacationForm({ initialEmail = '', initialHrCode = '' }) 
           type: 'success',
           message: `Loaded your existing vacation request (${match.totalDays} days). You can now edit your days and resubmit.`,
         });
-      } else {
+      } else if (!initialEmail) {
+        // Only show "not found" error when user manually clicked Load button
         setSubmitStatus({
           type: 'error',
           message: 'No existing vacation request found for this email/HR code. You can submit a new one.',
         });
       }
+      // If auto-loading from ServiceHub and no match found, stay silent - let user create new
     } catch (err) {
       setSubmitStatus({ type: 'error', message: err.message });
     } finally {
@@ -133,9 +136,9 @@ export default function VacationForm({ initialEmail = '', initialHrCode = '' }) 
           ? `Vacation request updated successfully! ${selectedDays.length} day(s) recorded. Confirmation emails sent.`
           : `Vacation request submitted successfully! ${selectedDays.length} day(s) recorded. Confirmation emails sent to you and the admin.`,
       });
-      setForm({ email: initialEmail || '', hrCode: initialHrCode || '' });
-      setSelectedDays([]);
-      setEditMode(false);
+      // Stay in edit mode - record now exists in the database,
+      // so any future submit is an update. Keep days visible.
+      setEditMode(true);
     } catch (err) {
       setSubmitStatus({ type: 'error', message: err.message });
     } finally {
@@ -177,9 +180,9 @@ export default function VacationForm({ initialEmail = '', initialHrCode = '' }) 
             : 'Select your planned vacation days for ' + currentYear + '. A confirmation email will be sent to you and the admin upon submission.'}
         </p>
 
-        {editMode && (
+        {editMode && !submitStatus && (
           <div className="vacation-status success" style={{ marginBottom: 20 }}>
-            Editing mode - Modify your days and click "Update Vacation Request" to save.
+            Editing mode - Modify your days and click &quot;Update Vacation Request&quot; to save.
           </div>
         )}
 
