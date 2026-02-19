@@ -13,13 +13,18 @@ const TYPE_LABELS = {
 async function sendServiceEmail(request, isUpdate) {
   const nodemailer = await import('nodemailer');
   const transporter = nodemailer.default.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
 
+  const fromName = process.env.EMAIL_FROM_NAME || 'AZKA Firmware Team';
+  const fromAddress = process.env.EMAIL_USER;
+  const ccAddress = process.env.EMAIL_CC || '';
   const action = isUpdate ? 'Updated' : 'New';
   const typeLabel = TYPE_LABELS[request.type] || request.type;
 
@@ -81,18 +86,19 @@ async function sendServiceEmail(request, isUpdate) {
 
   const subject = `${action} ${typeLabel} Request: ${request.email}`;
 
-  // Send to employee
+  // Send to employee + CC
   await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+    from: `"${fromName}" <${fromAddress}>`,
     to: request.email,
+    cc: ccAddress,
     subject,
     html,
   });
 
   // Send to admin
   await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: 'azka.innovation@gmail.com',
+    from: `"${fromName}" <${fromAddress}>`,
+    to: fromAddress,
     subject,
     html,
   });
