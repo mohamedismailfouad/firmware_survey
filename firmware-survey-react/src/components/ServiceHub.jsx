@@ -42,6 +42,7 @@ export default function ServiceHub() {
   // WFH state
   const [wfhDates, setWfhDates] = useState([]);
   const [wfhReason, setWfhReason] = useState('');
+  const [wfhAcknowledged, setWfhAcknowledged] = useState(false);
 
   // Urgent Vacation state
   const [urgentDates, setUrgentDates] = useState([]);
@@ -53,6 +54,10 @@ export default function ServiceHub() {
   // Edit mode tracking
   const [editingId, setEditingId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Skill matrix
+  const [skillData, setSkillData] = useState(null);
+  const [loadingSkills, setLoadingSkills] = useState(false);
 
   // Shared
   const [submitting, setSubmitting] = useState(false);
@@ -78,6 +83,24 @@ export default function ServiceHub() {
       }
       setEmployeeInfo({ name: data.name, department: data.department, experience: data.experience });
       setCredentialsConfirmed(true);
+
+      // Fetch skill matrix in background
+      setLoadingSkills(true);
+      try {
+        const surveyResp = await fetch(
+          `${API_BASE}/api/surveys?email=${encodeURIComponent(credentials.email)}`
+        );
+        if (surveyResp.ok) {
+          const surveys = await surveyResp.json();
+          if (surveys.length > 0) {
+            setSkillData(surveys[0]);
+          }
+        }
+      } catch {
+        // Skill data is optional
+      } finally {
+        setLoadingSkills(false);
+      }
     } catch (err) {
       setCredError('Failed to validate credentials. Please try again.');
     } finally {
@@ -95,12 +118,14 @@ export default function ServiceHub() {
     setSelectedService(null);
     setSubmitStatus(null);
     setEmployeeInfo(null);
+    setSkillData(null);
     resetForms();
   }
 
   function resetForms() {
     setWfhDates([]);
     setWfhReason('');
+    setWfhAcknowledged(false);
     setUrgentDates([]);
     setUrgentReason('');
     setHelpMessage('');
@@ -149,9 +174,7 @@ export default function ServiceHub() {
     for (let i = 0; i <= 30; i++) {
       const d = new Date(today);
       d.setDate(d.getDate() + i);
-      const dayOfWeek = d.getDay();
-      // Skip Friday (5) and Saturday (6) - weekend for Egypt
-      if (dayOfWeek === 5 || dayOfWeek === 6) continue;
+      // WFH allows any day including weekends
       days.push(d.toISOString().slice(0, 10));
     }
     return days;
@@ -285,6 +308,171 @@ export default function ServiceHub() {
     }
   }
 
+  // --- Skill matrix helpers ---
+  const SKILL_LEVELS = {
+    expert: { label: 'Expert', color: '#27ae60', bg: '#e8f8ef', icon: '★★★★' },
+    proficient: { label: 'Proficient', color: '#2980b9', bg: '#e8f4fd', icon: '★★★' },
+    basic: { label: 'Basic', color: '#f39c12', bg: '#fef9e7', icon: '★★' },
+    learning: { label: 'Learning', color: '#e67e22', bg: '#fdf2e9', icon: '★' },
+    none: { label: 'None', color: '#95a5a6', bg: '#f2f3f4', icon: '' },
+  };
+
+  const SKILL_CATEGORIES = [
+    { name: 'Metering & Protocol', keys: ['Metering', 'DLMS', 'ANSI', 'IEC62056-21', 'Tariff', 'Calendar', 'LoadProfile', 'Predictor', 'Limiter', 'Disconnector'] },
+    { name: 'Communication', keys: ['RF_APP', 'RF_Drv', 'RFID_APP', 'RFID_Drv', 'PLC', 'GPRS_APP', 'GPRS_Drv', 'IR', 'WiFi', 'Bluetooth', 'NB_IoT', 'Console'] },
+    { name: 'Security', keys: ['Security', 'AES', 'SHA', 'MD5', 'RSA', 'ECC', 'HMAC', 'ECDSA', 'TLS_SSL', 'KeyManagement', 'SecureBoot'] },
+    { name: 'System & Memory', keys: ['Bootloader', 'RTOS', 'LowPowerMode', 'PowerManagement', 'EEPROM', 'FLASH', 'BinaryDelta', 'Compression'] },
+    { name: 'Peripherals & HW', keys: ['Display_APP', 'Display_Drv', 'Keypad', 'TouchKeypad', 'Tampers', 'GPIO', 'UART', 'SPI', 'I2C', 'ADC', 'Timer', 'DMA', 'Interrupt', 'RTC', 'Watchdog', 'CRC'] },
+  ];
+
+  function getSkillLevel(survey, skillName) {
+    const skills = survey.skills instanceof Map ? Object.fromEntries(survey.skills) : (survey.skills || {});
+    const custom = survey.customSkills instanceof Map ? Object.fromEntries(survey.customSkills) : (survey.customSkills || {});
+    return skills[skillName] || custom[skillName] || 'none';
+  }
+
+  function calculateGradeFromSurvey(survey) {
+    const skills = survey.skills instanceof Map ? Object.fromEntries(survey.skills) : (survey.skills || {});
+    const custom = survey.customSkills instanceof Map ? Object.fromEntries(survey.customSkills) : (survey.customSkills || {});
+    const all = { ...skills, ...custom };
+    const vals = { none: 0, learning: 1, basic: 2, proficient: 3, expert: 4 };
+    const values = Object.values(all).map((v) => vals[v] || 0);
+    if (values.length === 0) return { percentage: 0, grade: 'F' };
+    const total = values.reduce((a, b) => a + b, 0);
+    const max = values.length * 4;
+    const pct = Math.round((total / max) * 100);
+    let grade = 'F';
+    if (pct >= 80) grade = 'A';
+    else if (pct >= 60) grade = 'B';
+    else if (pct >= 40) grade = 'C';
+    else if (pct >= 20) grade = 'D';
+    return { percentage: pct, grade };
+  }
+
+  function renderSkillMatrix() {
+    if (loadingSkills) {
+      return (
+        <div className="card" style={{ marginTop: 15, textAlign: 'center', padding: 20 }}>
+          <p style={{ color: '#999' }}>Loading skill matrix...</p>
+        </div>
+      );
+    }
+    if (!skillData) return null;
+
+    const { percentage, grade } = calculateGradeFromSurvey(skillData);
+    const gradeColors = { A: '#27ae60', B: '#2980b9', C: '#f39c12', D: '#e67e22', F: '#e74c3c' };
+
+    // Gather custom skills not in standard categories
+    const custom = skillData.customSkills instanceof Map ? Object.fromEntries(skillData.customSkills) : (skillData.customSkills || {});
+    const allStandardKeys = SKILL_CATEGORIES.flatMap((c) => c.keys);
+    const customKeys = Object.keys(custom).filter((k) => !allStandardKeys.includes(k));
+
+    return (
+      <div className="card" style={{ marginTop: 15 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+          <h3 style={{ color: 'var(--primary)', margin: 0 }}>Your Skill Matrix</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: '0.85rem', color: '#666' }}>Score: {percentage}%</span>
+            <span style={{
+              display: 'inline-block',
+              padding: '4px 12px',
+              borderRadius: 20,
+              fontWeight: 700,
+              fontSize: '1rem',
+              color: '#fff',
+              background: gradeColors[grade] || '#999',
+            }}>
+              Grade {grade}
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 15, fontSize: '0.8rem' }}>
+          {Object.entries(SKILL_LEVELS).filter(([k]) => k !== 'none').map(([key, info]) => (
+            <span key={key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 12, height: 12, borderRadius: 3, background: info.color, display: 'inline-block' }} />
+              {info.label}
+            </span>
+          ))}
+        </div>
+
+        {SKILL_CATEGORIES.map((cat) => {
+          const activeSkills = cat.keys.filter((k) => getSkillLevel(skillData, k) !== 'none');
+          if (activeSkills.length === 0) return null;
+          return (
+            <div key={cat.name} style={{ marginBottom: 12 }}>
+              <h4 style={{ color: '#555', margin: '0 0 6px', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {cat.name}
+              </h4>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {cat.keys.map((skill) => {
+                  const level = getSkillLevel(skillData, skill);
+                  if (level === 'none') return null;
+                  const info = SKILL_LEVELS[level];
+                  return (
+                    <span
+                      key={skill}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        fontSize: '0.8rem',
+                        background: info.bg,
+                        color: info.color,
+                        border: `1px solid ${info.color}30`,
+                        fontWeight: 500,
+                      }}
+                      title={`${skill}: ${info.label}`}
+                    >
+                      {skill.replace(/_/g, ' ')} {info.icon}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+
+        {customKeys.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <h4 style={{ color: '#555', margin: '0 0 6px', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Custom Skills
+            </h4>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {customKeys.map((skill) => {
+                const level = custom[skill];
+                const info = SKILL_LEVELS[level] || SKILL_LEVELS.none;
+                if (level === 'none') return null;
+                return (
+                  <span
+                    key={skill}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      fontSize: '0.8rem',
+                      background: info.bg,
+                      color: info.color,
+                      border: `1px solid ${info.color}30`,
+                      fontWeight: 500,
+                    }}
+                    title={`${skill}: ${info.label}`}
+                  >
+                    {skill.replace(/_/g, ' ')} {info.icon}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {skillData.projectName && (
+          <p style={{ margin: '10px 0 0', fontSize: '0.85rem', color: '#888' }}>
+            Current Project: <strong style={{ color: '#555' }}>{skillData.projectName}</strong>
+          </p>
+        )}
+      </div>
+    );
+  }
+
   // --- Step 1: Credentials ---
   if (!credentialsConfirmed) {
     return (
@@ -372,6 +560,8 @@ export default function ServiceHub() {
             ))}
           </div>
         </div>
+
+        {renderSkillMatrix()}
       </div>
     );
   }
@@ -480,6 +670,22 @@ export default function ServiceHub() {
             )}
           </div>
 
+          <div className="card" style={{ marginTop: 15 }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', color: '#333' }}>
+              <input
+                type="checkbox"
+                checked={wfhAcknowledged}
+                onChange={(e) => setWfhAcknowledged(e.target.checked)}
+                style={{ marginTop: 4, transform: 'scale(1.2)' }}
+              />
+              <span style={{ lineHeight: 1.5 }}>
+                I acknowledge that I clearly understand my assigned tasks for the work-from-home day(s),
+                I have prepared all required tools and equipment, and I commit to reviewing and reporting
+                my completed work at the end of each day.
+              </span>
+            </label>
+          </div>
+
           {submitStatus && (
             <div className={`vacation-status ${submitStatus.type}`}>
               {submitStatus.message}
@@ -490,7 +696,7 @@ export default function ServiceHub() {
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={submitting || wfhDates.length === 0}
+              disabled={submitting || wfhDates.length === 0 || !wfhAcknowledged}
             >
               {submitting ? 'Submitting...' : isEditing ? `Update WFH Request (${wfhDates.length} days)` : `Submit WFH Request (${wfhDates.length} days)`}
             </button>

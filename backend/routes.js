@@ -135,13 +135,16 @@ router.post('/import', async (req, res) => {
   }
 });
 
-// --- Get all surveys (optional department filter) ---
+// --- Get all surveys (optional department/email filter) ---
 router.get('/', async (req, res) => {
   try {
-    const filter =
-      req.query.department && req.query.department !== 'all'
-        ? { department: req.query.department }
-        : {};
+    const filter = {};
+    if (req.query.department && req.query.department !== 'all') {
+      filter.department = req.query.department;
+    }
+    if (req.query.email) {
+      filter.email = { $regex: new RegExp(`^${req.query.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') };
+    }
     const surveys = await Survey.find(filter).sort({ timestamp: -1 }).lean();
     res.json(surveys);
   } catch (err) {

@@ -6,7 +6,7 @@ const MONTH_NAMES = [
 ];
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export default function VacationCalendar({ selectedDays, onToggleDay, year }) {
+export default function VacationCalendar({ selectedDays, onToggleDay, year, allowWeekends = false }) {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(year || new Date().getFullYear());
   const [notification, setNotification] = useState('');
@@ -42,6 +42,11 @@ export default function VacationCalendar({ selectedDays, onToggleDay, year }) {
     if (!dayInfo.date) return;
     if (dayInfo.isPast) {
       setNotification('Cannot select past dates. Only future dates are allowed.');
+      setTimeout(() => setNotification(''), 3000);
+      return;
+    }
+    if (dayInfo.isWeekend && !allowWeekends) {
+      setNotification('Friday and Saturday are weekends and cannot be selected as vacation days.');
       setTimeout(() => setNotification(''), 3000);
       return;
     }

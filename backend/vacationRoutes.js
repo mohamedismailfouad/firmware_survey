@@ -1,6 +1,6 @@
 import express from 'express';
 import Vacation from './Vacation.js';
-import { findEmployee, findEmployeeByEmail } from './employees.js';
+import { findEmployee, findEmployeeByEmail, getTeamLeadEmail } from './employees.js';
 
 const router = express.Router();
 
@@ -19,7 +19,8 @@ async function sendVacationEmails(vacation, employee, isUpdate) {
 
   const fromName = process.env.EMAIL_FROM_NAME || 'AZKA Firmware Team';
   const fromAddress = process.env.EMAIL_USER;
-  const ccAddress = process.env.EMAIL_CC || '';
+  const ccList = [process.env.EMAIL_CC, getTeamLeadEmail(employee.department)].filter(Boolean);
+  const ccAddress = ccList.join(', ');
   const action = isUpdate ? 'Updated' : 'New';
   const expText = employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
 

@@ -1,6 +1,6 @@
 import express from 'express';
 import ServiceRequest from './ServiceRequest.js';
-import { findEmployee, findEmployeeByEmail } from './employees.js';
+import { findEmployee, findEmployeeByEmail, getTeamLeadEmail } from './employees.js';
 
 const router = express.Router();
 
@@ -25,7 +25,8 @@ async function sendServiceEmail(request, employee, isUpdate) {
 
   const fromName = process.env.EMAIL_FROM_NAME || 'AZKA Firmware Team';
   const fromAddress = process.env.EMAIL_USER;
-  const ccAddress = process.env.EMAIL_CC || '';
+  const ccList = [process.env.EMAIL_CC, getTeamLeadEmail(employee.department)].filter(Boolean);
+  const ccAddress = ccList.join(', ');
   const action = isUpdate ? 'Updated' : 'New';
   const typeLabel = TYPE_LABELS[request.type] || request.type;
   const expText = employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
@@ -125,7 +126,6 @@ async function sendStatusChangeEmail(request, newStatus) {
 
   const fromName = process.env.EMAIL_FROM_NAME || 'AZKA Firmware Team';
   const fromAddress = process.env.EMAIL_USER;
-  const ccAddress = process.env.EMAIL_CC || '';
   const typeLabel = TYPE_LABELS[request.type] || request.type;
   const statusLabel = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
   const statusColor = newStatus === 'approved' ? '#27ae60' : '#e74c3c';
@@ -135,6 +135,8 @@ async function sendStatusChangeEmail(request, newStatus) {
   const empName = employee ? employee.name : request.email;
   const empDept = employee ? employee.department : 'N/A';
   const expText = employee && employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
+  const ccList = [process.env.EMAIL_CC, employee ? getTeamLeadEmail(employee.department) : null].filter(Boolean);
+  const ccAddress = ccList.join(', ');
 
   let datesHtml = '';
   if (request.dates && request.dates.length > 0) {
