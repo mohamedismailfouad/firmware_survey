@@ -6,6 +6,7 @@ import surveyRoutes from './routes.js';
 import authRoutes from './authRoutes.js';
 import vacationRoutes from './vacationRoutes.js';
 import serviceRoutes from './serviceRoutes.js';
+import { findEmployee } from './employees.js';
 import Admin from './Admin.js';
 
 const app = express();
@@ -44,6 +45,24 @@ app.use(async (req, res, next) => {
 // Health check
 app.get('/', (req, res) => {
   res.json({ status: 'AZKA Firmware Survey API is running' });
+});
+
+// Employee validation (no DB needed)
+app.get('/api/employees/validate', (req, res) => {
+  const { email, hrCode } = req.query;
+  if (!email || !hrCode) {
+    return res.status(400).json({ valid: false, error: 'Email and HR Code are required' });
+  }
+  const employee = findEmployee(email, hrCode);
+  if (!employee) {
+    return res.status(404).json({ valid: false, error: 'Employee not found. Please check your email and HR code.' });
+  }
+  res.json({
+    valid: true,
+    name: employee.name,
+    department: employee.department,
+    experience: employee.experience,
+  });
 });
 
 // Routes

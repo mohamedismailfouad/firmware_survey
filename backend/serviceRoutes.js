@@ -1,5 +1,6 @@
 import express from 'express';
 import ServiceRequest from './ServiceRequest.js';
+import { findEmployee, findEmployeeByEmail } from './employees.js';
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ const TYPE_LABELS = {
 };
 
 // --- Helper: send service request emails ---
-async function sendServiceEmail(request, isUpdate) {
+async function sendServiceEmail(request, employee, isUpdate) {
   const nodemailer = await import('nodemailer');
   const transporter = nodemailer.default.createTransport({
     host: 'smtp.gmail.com',
@@ -27,6 +28,7 @@ async function sendServiceEmail(request, isUpdate) {
   const ccAddress = process.env.EMAIL_CC || '';
   const action = isUpdate ? 'Updated' : 'New';
   const typeLabel = TYPE_LABELS[request.type] || request.type;
+  const expText = employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
 
   let datesHtml = '';
   if (request.dates && request.dates.length > 0) {
@@ -63,10 +65,14 @@ async function sendServiceEmail(request, isUpdate) {
         <h2 style="color: white; margin: 0;">${action} Service Request: ${typeLabel}</h2>
       </div>
       <div style="background: #ffffff; padding: 25px; border: 1px solid #e0e0e0;">
+        <p style="font-size: 1.1rem; margin-bottom: 20px;">Dear <strong>${employee.name}</strong>,</p>
         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
           <h3 style="color: #1a5f7a; margin-top: 0;">Employee Details</h3>
+          <p style="margin: 5px 0;"><strong>Name:</strong> ${employee.name}</p>
           <p style="margin: 5px 0;"><strong>Email:</strong> ${request.email}</p>
           <p style="margin: 5px 0;"><strong>HR Code:</strong> ${request.hrCode}</p>
+          <p style="margin: 5px 0;"><strong>Department:</strong> ${employee.department}</p>
+          <p style="margin: 5px 0;"><strong>Experience:</strong> ${expText}</p>
         </div>
         <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
           <h3 style="color: #1a5f7a; margin-top: 0;">Request Type</h3>
@@ -84,7 +90,7 @@ async function sendServiceEmail(request, isUpdate) {
     </div>
   `;
 
-  const subject = `${action} ${typeLabel} Request: ${request.email}`;
+  const subject = `${action} ${typeLabel} Request: ${employee.name} (${employee.department})`;
 
   // Send to employee + CC
   await transporter.sendMail({
@@ -123,6 +129,12 @@ async function sendStatusChangeEmail(request, newStatus) {
   const typeLabel = TYPE_LABELS[request.type] || request.type;
   const statusLabel = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
   const statusColor = newStatus === 'approved' ? '#27ae60' : '#e74c3c';
+
+  // Look up employee for personalization
+  const employee = findEmployeeByEmail(request.email);
+  const empName = employee ? employee.name : request.email;
+  const empDept = employee ? employee.department : 'N/A';
+  const expText = employee && employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
 
   let datesHtml = '';
   if (request.dates && request.dates.length > 0) {
@@ -168,6 +180,8 @@ async function sendStatusChangeEmail(request, newStatus) {
         <h2 style="color: white; margin: 0;">Service Request ${statusLabel}</h2>
       </div>
       <div style="background: #ffffff; padding: 25px; border: 1px solid #e0e0e0;">
+        <p style="font-size: 1.1rem; margin-bottom: 20px;">Dear <strong>${empName}</strong>,</p>
+        <p style="margin-bottom: 20px;">Your <strong>${typeLabel}</strong> request has been <strong style="color: ${statusColor};">${statusLabel}</strong>.</p>
         <div style="text-align: center; margin-bottom: 20px;">
           <span style="display: inline-block; background: ${statusColor}; color: white; padding: 10px 30px; border-radius: 25px; font-size: 1.2rem; font-weight: 700;">
             ${statusLabel}
@@ -175,9 +189,12 @@ async function sendStatusChangeEmail(request, newStatus) {
         </div>
         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
           <h3 style="color: #1a5f7a; margin-top: 0;">Request Details</h3>
+          <p style="margin: 5px 0;"><strong>Name:</strong> ${empName}</p>
           <p style="margin: 5px 0;"><strong>Type:</strong> ${typeLabel}</p>
           <p style="margin: 5px 0;"><strong>Email:</strong> ${request.email}</p>
           <p style="margin: 5px 0;"><strong>HR Code:</strong> ${request.hrCode}</p>
+          <p style="margin: 5px 0;"><strong>Department:</strong> ${empDept}</p>
+          <p style="margin: 5px 0;"><strong>Experience:</strong> ${expText}</p>
         </div>
         ${datesHtml}
         ${reasonHtml}
@@ -192,7 +209,7 @@ async function sendStatusChangeEmail(request, newStatus) {
     </div>
   `;
 
-  const subject = `Your ${typeLabel} Request has been ${statusLabel}`;
+  const subject = `Your ${typeLabel} Request has been ${statusLabel} - ${empName}`;
 
   // Send to employee + CC
   await transporter.sendMail({
@@ -266,6 +283,12 @@ router.post('/', async (req, res) => {
 
     if (!email || !hrCode || !type) {
       return res.status(400).json({ error: 'Email, HR Code, and Request Type are required' });
+    }
+
+    // Validate employee credentials
+    const employee = findEmployee(email, hrCode);
+    if (!employee) {
+      return res.status(400).json({ error: 'Employee not found. Please check your email and HR code.' });
     }
 
     // Validate type-specific requirements
@@ -344,7 +367,7 @@ router.post('/', async (req, res) => {
 
     // Send emails (await to ensure delivery before serverless shutdown)
     try {
-      await sendServiceEmail(serviceRequest.toObject(), isUpdate);
+      await sendServiceEmail(serviceRequest.toObject(), employee, isUpdate);
     } catch (emailErr) {
       console.error('Service request email failed:', emailErr);
     }

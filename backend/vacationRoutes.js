@@ -1,10 +1,11 @@
 import express from 'express';
 import Vacation from './Vacation.js';
+import { findEmployee, findEmployeeByEmail } from './employees.js';
 
 const router = express.Router();
 
 // --- Helper: send vacation confirmation emails ---
-async function sendVacationEmails(vacation, isUpdate) {
+async function sendVacationEmails(vacation, employee, isUpdate) {
   const nodemailer = await import('nodemailer');
   const transporter = nodemailer.default.createTransport({
     host: 'smtp.gmail.com',
@@ -20,6 +21,7 @@ async function sendVacationEmails(vacation, isUpdate) {
   const fromAddress = process.env.EMAIL_USER;
   const ccAddress = process.env.EMAIL_CC || '';
   const action = isUpdate ? 'Updated' : 'New';
+  const expText = employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
 
   const formattedDays = vacation.vacationDays
     .map((d) => {
@@ -39,10 +41,14 @@ async function sendVacationEmails(vacation, isUpdate) {
         <h2 style="color: white; margin: 0;">${action} Vacation Request</h2>
       </div>
       <div style="background: #ffffff; padding: 25px; border: 1px solid #e0e0e0;">
+        <p style="font-size: 1.1rem; margin-bottom: 20px;">Dear <strong>${employee.name}</strong>,</p>
         <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
           <h3 style="color: #1a5f7a; margin-top: 0;">Employee Details</h3>
+          <p style="margin: 5px 0;"><strong>Name:</strong> ${employee.name}</p>
           <p style="margin: 5px 0;"><strong>Email:</strong> ${vacation.email}</p>
           <p style="margin: 5px 0;"><strong>HR Code:</strong> ${vacation.hrCode}</p>
+          <p style="margin: 5px 0;"><strong>Department:</strong> ${employee.department}</p>
+          <p style="margin: 5px 0;"><strong>Experience:</strong> ${expText}</p>
         </div>
         <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
           <h3 style="color: #1a5f7a; margin-top: 0;">
@@ -60,18 +66,16 @@ async function sendVacationEmails(vacation, isUpdate) {
     </div>
   `;
 
-  const subject = `${action} Vacation: ${vacation.email} - ${vacation.totalDays} days (${vacation.year})`;
+  const subject = `${action} Vacation: ${employee.name} (${employee.department}) - ${vacation.totalDays} days (${vacation.year})`;
 
-  const mailOptions = {
+  // Send to employee + CC
+  await transporter.sendMail({
     from: `"${fromName}" <${fromAddress}>`,
     to: vacation.email,
     cc: ccAddress,
     subject,
     html,
-  };
-
-  // Send to employee + CC
-  await transporter.sendMail(mailOptions);
+  });
 
   // Send to admin
   await transporter.sendMail({
@@ -229,6 +233,12 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Email, HR Code, Year and Vacation Days are required' });
     }
 
+    // Validate employee credentials
+    const employee = findEmployee(email, hrCode);
+    if (!employee) {
+      return res.status(400).json({ error: 'Employee not found. Please check your email and HR code.' });
+    }
+
     // Validate no past dates
     const today = new Date().toISOString().slice(0, 10);
     const pastDays = vacationDays.filter((d) => d < today);
@@ -269,7 +279,7 @@ router.post('/', async (req, res) => {
 
     // Send emails (await to ensure delivery before serverless shutdown)
     try {
-      await sendVacationEmails(vacation.toObject(), isUpdate);
+      await sendVacationEmails(vacation.toObject(), employee, isUpdate);
     } catch (emailErr) {
       console.error('Vacation email failed:', emailErr);
     }

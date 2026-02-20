@@ -29,11 +29,15 @@ const SERVICE_TYPES = [
   },
 ];
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 export default function ServiceHub() {
   const [credentials, setCredentials] = useState({ email: '', hrCode: '' });
   const [credentialsConfirmed, setCredentialsConfirmed] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
   const [credError, setCredError] = useState('');
+  const [validating, setValidating] = useState(false);
+  const [employeeInfo, setEmployeeInfo] = useState(null); // { name, department, experience }
 
   // WFH state
   const [wfhDates, setWfhDates] = useState([]);
@@ -55,14 +59,30 @@ export default function ServiceHub() {
   const [submitStatus, setSubmitStatus] = useState(null);
   const [loadingExisting, setLoadingExisting] = useState(false);
 
-  function handleCredentialsSubmit(e) {
+  async function handleCredentialsSubmit(e) {
     e.preventDefault();
     setCredError('');
     if (!credentials.email || !credentials.hrCode) {
       setCredError('Both Email and HR Code are required.');
       return;
     }
-    setCredentialsConfirmed(true);
+    setValidating(true);
+    try {
+      const resp = await fetch(
+        `${API_BASE}/api/employees/validate?email=${encodeURIComponent(credentials.email)}&hrCode=${encodeURIComponent(credentials.hrCode)}`
+      );
+      const data = await resp.json();
+      if (!resp.ok || !data.valid) {
+        setCredError(data.error || 'Employee not found. Please check your email and HR code.');
+        return;
+      }
+      setEmployeeInfo({ name: data.name, department: data.department, experience: data.experience });
+      setCredentialsConfirmed(true);
+    } catch (err) {
+      setCredError('Failed to validate credentials. Please try again.');
+    } finally {
+      setValidating(false);
+    }
   }
 
   function handleBack() {
@@ -74,6 +94,7 @@ export default function ServiceHub() {
     setCredentialsConfirmed(false);
     setSelectedService(null);
     setSubmitStatus(null);
+    setEmployeeInfo(null);
     resetForms();
   }
 
@@ -305,8 +326,8 @@ export default function ServiceHub() {
             </div>
           )}
           <div style={{ marginTop: 20 }}>
-            <button type="submit" className="btn btn-primary">
-              Continue
+            <button type="submit" className="btn btn-primary" disabled={validating}>
+              {validating ? 'Validating...' : 'Continue'}
             </button>
           </div>
         </form>
@@ -325,9 +346,11 @@ export default function ServiceHub() {
               Change Credentials
             </button>
           </div>
-          <p style={{ color: '#666', marginBottom: 5 }}>
-            Logged in as: <strong>{credentials.email}</strong> (HR: <strong>{credentials.hrCode}</strong>)
-          </p>
+          {employeeInfo && (
+            <p style={{ color: 'var(--primary)', marginBottom: 5, fontSize: '1.05rem' }}>
+              Welcome, <strong>{employeeInfo.name}</strong> ({employeeInfo.department}{employeeInfo.experience != null ? `, ${employeeInfo.experience} yr${employeeInfo.experience !== 1 ? 's' : ''} exp` : ''})
+            </p>
+          )}
           <p style={{ color: '#999', marginBottom: 25, fontSize: '0.9rem' }}>
             Choose the service you need from the options below.
           </p>
@@ -360,7 +383,7 @@ export default function ServiceHub() {
         <div className="card" style={{ padding: '15px 20px', marginBottom: 15 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <p style={{ margin: 0, color: '#666' }}>
-              <strong>{credentials.email}</strong> (HR: {credentials.hrCode})
+              <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
             </p>
             <button className="btn btn-secondary btn-sm" onClick={handleBack}>
               Back to Services
@@ -383,7 +406,7 @@ export default function ServiceHub() {
         <div className="card" style={{ padding: '15px 20px', marginBottom: 15 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <p style={{ margin: 0, color: '#666' }}>
-              <strong>{credentials.email}</strong> (HR: {credentials.hrCode})
+              <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
             </p>
             <button className="btn btn-secondary btn-sm" onClick={handleBack}>
               Back to Services
@@ -488,7 +511,7 @@ export default function ServiceHub() {
         <div className="card" style={{ padding: '15px 20px', marginBottom: 15 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <p style={{ margin: 0, color: '#666' }}>
-              <strong>{credentials.email}</strong> (HR: {credentials.hrCode})
+              <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
             </p>
             <button className="btn btn-secondary btn-sm" onClick={handleBack}>
               Back to Services
@@ -590,7 +613,7 @@ export default function ServiceHub() {
         <div className="card" style={{ padding: '15px 20px', marginBottom: 15 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <p style={{ margin: 0, color: '#666' }}>
-              <strong>{credentials.email}</strong> (HR: {credentials.hrCode})
+              <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
             </p>
             <button className="btn btn-secondary btn-sm" onClick={handleBack}>
               Back to Services
