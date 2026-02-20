@@ -342,10 +342,12 @@ router.post('/', async (req, res) => {
       await serviceRequest.save();
     }
 
-    // Send emails (non-blocking)
-    sendServiceEmail(serviceRequest.toObject(), isUpdate).catch((err) => {
-      console.error('Service request email failed:', err);
-    });
+    // Send emails (await to ensure delivery before serverless shutdown)
+    try {
+      await sendServiceEmail(serviceRequest.toObject(), isUpdate);
+    } catch (emailErr) {
+      console.error('Service request email failed:', emailErr);
+    }
 
     res.status(isUpdate ? 200 : 201).json({
       ...serviceRequest.toObject(),
@@ -371,11 +373,13 @@ router.put('/:id/status', async (req, res) => {
     );
     if (!request) return res.status(404).json({ error: 'Not found' });
 
-    // Send status change email to employee (non-blocking)
+    // Send status change email to employee (await for serverless)
     if (status === 'approved' || status === 'rejected') {
-      sendStatusChangeEmail(request.toObject(), status).catch((err) => {
-        console.error('Status change email failed:', err);
-      });
+      try {
+        await sendStatusChangeEmail(request.toObject(), status);
+      } catch (emailErr) {
+        console.error('Status change email failed:', emailErr);
+      }
     }
 
     res.json(request.toObject());

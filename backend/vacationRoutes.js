@@ -267,10 +267,12 @@ router.post('/', async (req, res) => {
       await vacation.save();
     }
 
-    // Send emails (non-blocking)
-    sendVacationEmails(vacation.toObject(), isUpdate).catch((err) => {
-      console.error('Vacation email failed:', err);
-    });
+    // Send emails (await to ensure delivery before serverless shutdown)
+    try {
+      await sendVacationEmails(vacation.toObject(), isUpdate);
+    } catch (emailErr) {
+      console.error('Vacation email failed:', emailErr);
+    }
 
     res.status(isUpdate ? 200 : 201).json({
       ...vacation.toObject(),
