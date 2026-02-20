@@ -191,6 +191,14 @@ export default function ServiceHub() {
   }
 
   // --- Date helpers for WFH and Urgent Vacation ---
+  // Format date as YYYY-MM-DD using LOCAL time (not UTC) to avoid timezone shift
+  function toLocalDateStr(d) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   function getNext30Days() {
     const days = [];
     const today = new Date();
@@ -199,7 +207,7 @@ export default function ServiceHub() {
       const d = new Date(today);
       d.setDate(d.getDate() + i);
       // WFH allows any day including weekends
-      days.push(d.toISOString().slice(0, 10));
+      days.push(toLocalDateStr(d));
     }
     return days;
   }
@@ -215,7 +223,7 @@ export default function ServiceHub() {
       const dayOfWeek = d.getDay();
       // Skip Friday (5) and Saturday (6) - weekends
       if (dayOfWeek !== 5 && dayOfWeek !== 6) {
-        days.push(d.toISOString().slice(0, 10));
+        days.push(toLocalDateStr(d));
       }
       i++;
       if (i > 14) break; // Safety limit
