@@ -42,6 +42,7 @@ export const EMPLOYEES = [
 export const DEPARTMENT_LEADS = {
   DLMS: 'omar.mahmoud@azka.com.eg',
   Flow: 'mervat.abdelrahman@azka.com.eg',
+  Management: 'mohamedismailfouad@gmail.com', // Test team lead
   // Prepaid and R&D have no designated team lead
 };
 
