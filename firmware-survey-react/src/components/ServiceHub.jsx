@@ -18,7 +18,7 @@ const SERVICE_TYPES = [
   {
     key: 'urgent_vacation',
     label: 'Urgent Vacation',
-    description: 'Request an urgent vacation (up to 3 days from today)',
+    description: 'Request an urgent vacation (up to 2 working days)',
     color: '#e67e22',
   },
   {
@@ -26,6 +26,12 @@ const SERVICE_TYPES = [
     label: 'Need Help',
     description: 'Request assistance or support from management',
     color: '#8e44ad',
+  },
+  {
+    key: 'my_requests',
+    label: 'My Requests',
+    description: 'View all your submitted requests and their current status',
+    color: '#2c3e50',
   },
 ];
 
@@ -58,6 +64,10 @@ export default function ServiceHub() {
   // Skill matrix
   const [skillData, setSkillData] = useState(null);
   const [loadingSkills, setLoadingSkills] = useState(false);
+
+  // My Requests
+  const [myRequests, setMyRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
 
   // Shared
   const [submitting, setSubmitting] = useState(false);
@@ -138,6 +148,20 @@ export default function ServiceHub() {
     resetForms();
     setSelectedService(key);
 
+    // Load request history for "my_requests" view
+    if (key === 'my_requests') {
+      setLoadingRequests(true);
+      try {
+        const requests = await fetchServiceRequests({ email: credentials.email });
+        setMyRequests(requests);
+      } catch {
+        setMyRequests([]);
+      } finally {
+        setLoadingRequests(false);
+      }
+      return;
+    }
+
     // Only check for existing pending request for work_from_home (edit allowed)
     if (key === 'work_from_home') {
       setLoadingExisting(true);
@@ -180,16 +204,21 @@ export default function ServiceHub() {
     return days;
   }
 
-  function getNext3Days() {
+  function getNextWorkdays(count) {
     const days = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    for (let i = 0; i <= 3; i++) {
+    let i = 0;
+    while (days.length < count) {
       const d = new Date(today);
       d.setDate(d.getDate() + i);
       const dayOfWeek = d.getDay();
-      if (dayOfWeek === 5 || dayOfWeek === 6) continue;
-      days.push(d.toISOString().slice(0, 10));
+      // Skip Friday (5) and Saturday (6) - weekends
+      if (dayOfWeek !== 5 && dayOfWeek !== 6) {
+        days.push(d.toISOString().slice(0, 10));
+      }
+      i++;
+      if (i > 14) break; // Safety limit
     }
     return days;
   }
@@ -477,6 +506,9 @@ export default function ServiceHub() {
   if (!credentialsConfirmed) {
     return (
       <div className="card">
+        <div style={{ textAlign: 'center', marginBottom: 15 }}>
+          <img src="/azka_logo.png" alt="AZKA" style={{ height: 60, borderRadius: 12, marginBottom: 10 }} />
+        </div>
         <h2 className="card-title">Employee Services</h2>
         <p style={{ marginBottom: 20, color: '#666' }}>
           Enter your credentials to access available services. Both fields are required.
@@ -529,7 +561,10 @@ export default function ServiceHub() {
       <div>
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-            <h2 className="card-title" style={{ margin: 0 }}>Select a Service</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <img src="/azka_logo.png" alt="AZKA" style={{ height: 36, borderRadius: 8 }} />
+              <h2 className="card-title" style={{ margin: 0 }}>Select a Service</h2>
+            </div>
             <button className="btn btn-secondary btn-sm" onClick={handleBackToCredentials}>
               Change Credentials
             </button>
@@ -572,9 +607,12 @@ export default function ServiceHub() {
       <div>
         <div className="card" style={{ padding: '15px 20px', marginBottom: 15 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <p style={{ margin: 0, color: '#666' }}>
-              <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src="/azka_logo.png" alt="AZKA" style={{ height: 28, borderRadius: 6 }} />
+              <p style={{ margin: 0, color: '#666' }}>
+                <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
+              </p>
+            </div>
             <button className="btn btn-secondary btn-sm" onClick={handleBack}>
               Back to Services
             </button>
@@ -595,9 +633,12 @@ export default function ServiceHub() {
       <div>
         <div className="card" style={{ padding: '15px 20px', marginBottom: 15 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <p style={{ margin: 0, color: '#666' }}>
-              <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src="/azka_logo.png" alt="AZKA" style={{ height: 28, borderRadius: 6 }} />
+              <p style={{ margin: 0, color: '#666' }}>
+                <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
+              </p>
+            </div>
             <button className="btn btn-secondary btn-sm" onClick={handleBack}>
               Back to Services
             </button>
@@ -711,14 +752,17 @@ export default function ServiceHub() {
 
   // --- Step 3: Urgent Vacation ---
   if (selectedService === 'urgent_vacation') {
-    const availableDays = getNext3Days();
+    const availableDays = getNextWorkdays(2);
     return (
       <div>
         <div className="card" style={{ padding: '15px 20px', marginBottom: 15 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <p style={{ margin: 0, color: '#666' }}>
-              <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src="/azka_logo.png" alt="AZKA" style={{ height: 28, borderRadius: 6 }} />
+              <p style={{ margin: 0, color: '#666' }}>
+                <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
+              </p>
+            </div>
             <button className="btn btn-secondary btn-sm" onClick={handleBack}>
               Back to Services
             </button>
@@ -731,7 +775,7 @@ export default function ServiceHub() {
               Request Urgent Vacation
             </h2>
             <p style={{ marginBottom: 20, color: '#666' }}>
-              Select up to 3 days starting from today for your urgent vacation request.
+              Select up to 2 working days for your urgent vacation request. Fridays and Saturdays (weekends) are excluded.
             </p>
 
             <div className="form-group">
@@ -747,17 +791,17 @@ export default function ServiceHub() {
             </div>
 
             <h3 style={{ color: 'var(--primary)', marginBottom: 10, marginTop: 20 }}>
-              Select Dates (max 3 days)
+              Select Dates (max 2 working days)
             </h3>
             {availableDays.length === 0 ? (
-              <p style={{ color: '#999' }}>No available days (upcoming days are weekends).</p>
+              <p style={{ color: '#999' }}>No available working days found.</p>
             ) : (
               <div className="service-date-grid">
                 {availableDays.map((day) => (
                   <div
                     key={day}
                     className={`service-date-chip urgent ${urgentDates.includes(day) ? 'selected' : ''}`}
-                    onClick={() => toggleDate(day, urgentDates, setUrgentDates, 3)}
+                    onClick={() => toggleDate(day, urgentDates, setUrgentDates, 2)}
                   >
                     {formatDate(day)}
                   </div>
@@ -818,9 +862,12 @@ export default function ServiceHub() {
       <div>
         <div className="card" style={{ padding: '15px 20px', marginBottom: 15 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <p style={{ margin: 0, color: '#666' }}>
-              <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src="/azka_logo.png" alt="AZKA" style={{ height: 28, borderRadius: 6 }} />
+              <p style={{ margin: 0, color: '#666' }}>
+                <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
+              </p>
+            </div>
             <button className="btn btn-secondary btn-sm" onClick={handleBack}>
               Back to Services
             </button>
@@ -869,6 +916,131 @@ export default function ServiceHub() {
             </button>
           </div>
         </form>
+      </div>
+    );
+  }
+
+  // --- Step 3: My Requests ---
+  if (selectedService === 'my_requests') {
+    const statusColors = {
+      pending: { bg: '#fff3cd', color: '#856404', label: 'Pending' },
+      approved: { bg: '#d4edda', color: '#155724', label: 'Approved' },
+      rejected: { bg: '#f8d7da', color: '#721c24', label: 'Rejected' },
+    };
+    const typeLabels = {
+      work_from_home: 'Work From Home',
+      urgent_vacation: 'Urgent Vacation',
+      need_help: 'Need Help',
+    };
+    const typeColors = {
+      work_from_home: '#159895',
+      urgent_vacation: '#e67e22',
+      need_help: '#8e44ad',
+    };
+
+    return (
+      <div>
+        <div className="card" style={{ padding: '15px 20px', marginBottom: 15 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src="/azka_logo.png" alt="AZKA" style={{ height: 28, borderRadius: 6 }} />
+              <p style={{ margin: 0, color: '#666' }}>
+                <strong>{employeeInfo?.name || credentials.email}</strong> &mdash; {employeeInfo?.department || ''} (HR: {credentials.hrCode})
+              </p>
+            </div>
+            <button className="btn btn-secondary btn-sm" onClick={handleBack}>
+              Back to Services
+            </button>
+          </div>
+        </div>
+
+        <div className="card">
+          <h2 className="card-title" style={{ color: '#2c3e50' }}>My Requests</h2>
+          <p style={{ marginBottom: 20, color: '#666' }}>
+            View the status of all your submitted service requests.
+          </p>
+
+          {loadingRequests ? (
+            <p style={{ textAlign: 'center', color: '#999', padding: 20 }}>Loading your requests...</p>
+          ) : myRequests.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#999' }}>
+              <p style={{ fontSize: '1.1rem' }}>No requests found.</p>
+              <p>Submit a request from the services menu to see it here.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {myRequests.map((req) => {
+                const status = statusColors[req.status] || statusColors.pending;
+                const typeColor = typeColors[req.type] || '#666';
+                return (
+                  <div
+                    key={req._id}
+                    style={{
+                      border: '1px solid #e0e0e0',
+                      borderLeft: `4px solid ${typeColor}`,
+                      borderRadius: 8,
+                      padding: 15,
+                      background: '#fafafa',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontWeight: 600, color: typeColor, fontSize: '0.95rem' }}>
+                        {typeLabels[req.type] || req.type}
+                      </span>
+                      <span
+                        style={{
+                          padding: '3px 12px',
+                          borderRadius: 20,
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          background: status.bg,
+                          color: status.color,
+                        }}
+                      >
+                        {status.label}
+                      </span>
+                    </div>
+
+                    {req.dates && req.dates.length > 0 && (
+                      <div style={{ marginBottom: 6 }}>
+                        <span style={{ fontSize: '0.85rem', color: '#555' }}>
+                          <strong>Dates:</strong>{' '}
+                          {req.dates.map((d) => {
+                            const date = new Date(d + 'T00:00:00');
+                            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                          }).join(', ')}
+                          {' '}({req.dates.length} day{req.dates.length !== 1 ? 's' : ''})
+                        </span>
+                      </div>
+                    )}
+
+                    {req.reason && (
+                      <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#666' }}>
+                        <strong>Reason:</strong> {req.reason}
+                      </p>
+                    )}
+
+                    {req.adminNote && (
+                      <p style={{ margin: '4px 0', fontSize: '0.85rem', color: status.color, fontStyle: 'italic' }}>
+                        <strong>Admin Note:</strong> {req.adminNote}
+                      </p>
+                    )}
+
+                    <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: '#999' }}>
+                      Submitted: {new Date(req.submittedAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
