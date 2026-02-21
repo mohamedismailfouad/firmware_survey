@@ -304,23 +304,20 @@ router.post('/', async (req, res) => {
       if (!dates || dates.length === 0) {
         return res.status(400).json({ error: 'Please select at least one date for Urgent Vacation' });
       }
-      if (dates.length > 3) {
-        return res.status(400).json({ error: 'Urgent Vacation cannot exceed 3 days' });
+      if (dates.length > 2) {
+        return res.status(400).json({ error: 'Urgent Vacation cannot exceed 2 working days' });
       }
-      // Validate dates are within 3 days from today
+      // Validate dates are working days (not Fri/Sat) and not in the past
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const maxDate = new Date(today);
-      maxDate.setDate(maxDate.getDate() + 3);
       for (const d of dates) {
         const dateObj = new Date(d + 'T00:00:00');
         if (dateObj < today) {
           return res.status(400).json({ error: `Cannot select past date: ${d}` });
         }
-        if (dateObj > maxDate) {
-          return res.status(400).json({
-            error: `Urgent vacation dates must be within 3 days from today. ${d} is too far.`,
-          });
+        const dow = dateObj.getDay();
+        if (dow === 5 || dow === 6) {
+          return res.status(400).json({ error: `Cannot select weekend date: ${d}` });
         }
       }
     }
@@ -329,6 +326,20 @@ router.post('/', async (req, res) => {
       if (!reason || reason.trim().length === 0) {
         return res.status(400).json({ error: 'Please describe what help you need' });
       }
+    }
+
+    // Check for existing pending request of the same type (prevent duplicates)
+    const existingPending = await ServiceRequest.findOne({
+      email: email.toLowerCase(),
+      type,
+      status: 'pending',
+    });
+
+    if (existingPending && type !== 'work_from_home') {
+      return res.status(409).json({
+        error: `You already have a pending ${TYPE_LABELS[type] || type} request. Please wait for it to be reviewed before submitting a new one.`,
+        existingRequest: existingPending,
+      });
     }
 
     const requestData = {
@@ -341,25 +352,17 @@ router.post('/', async (req, res) => {
       submittedAt: new Date(),
     };
 
-    // Upsert only for work_from_home (edit allowed).
-    // Urgent vacation and need help always create new requests.
+    // Upsert for work_from_home (edit allowed).
     let serviceRequest;
     let isUpdate = false;
 
-    if (type === 'work_from_home') {
-      const existing = await ServiceRequest.findOne({
-        email: requestData.email,
-        type: 'work_from_home',
-        status: 'pending',
-      });
-      if (existing) {
-        serviceRequest = await ServiceRequest.findByIdAndUpdate(
-          existing._id,
-          requestData,
-          { new: true, runValidators: true }
-        );
-        isUpdate = true;
-      }
+    if (type === 'work_from_home' && existingPending) {
+      serviceRequest = await ServiceRequest.findByIdAndUpdate(
+        existingPending._id,
+        requestData,
+        { new: true, runValidators: true }
+      );
+      isUpdate = true;
     }
 
     if (!serviceRequest) {

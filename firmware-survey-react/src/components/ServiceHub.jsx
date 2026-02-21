@@ -162,17 +162,18 @@ export default function ServiceHub() {
       return;
     }
 
-    // Only check for existing pending request for work_from_home (edit allowed)
-    if (key === 'work_from_home') {
-      setLoadingExisting(true);
-      try {
-        const existing = await fetchServiceRequests({
-          email: credentials.email,
-          type: 'work_from_home',
-          status: 'pending',
-        });
-        if (existing.length > 0) {
-          const req = existing[0];
+    // Check for existing pending requests
+    setLoadingExisting(true);
+    try {
+      const existing = await fetchServiceRequests({
+        email: credentials.email,
+        type: key,
+        status: 'pending',
+      });
+      if (existing.length > 0) {
+        const req = existing[0];
+        if (key === 'work_from_home') {
+          // WFH allows editing the existing request
           setEditingId(req._id);
           setIsEditing(true);
           setWfhDates(req.dates || []);
@@ -181,12 +182,28 @@ export default function ServiceHub() {
             type: 'success',
             message: 'You have an existing pending request. You can edit it below and resubmit.',
           });
+        } else {
+          // Urgent vacation & need help: block duplicate submission
+          const typeLabel = key === 'urgent_vacation' ? 'Urgent Vacation' : 'Need Help';
+          const submittedDate = new Date(req.submittedAt).toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
+          });
+          const datesInfo = req.dates?.length
+            ? ` for ${req.dates.length} day(s): ${req.dates.map((d) => {
+                const date = new Date(d + 'T00:00:00');
+                return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+              }).join(', ')}`
+            : '';
+          setSubmitStatus({
+            type: 'error',
+            message: `You already have a pending ${typeLabel} request${datesInfo} (submitted ${submittedDate}). Please wait for it to be reviewed before submitting a new one. You can check the status in "My Requests".`,
+          });
         }
-      } catch (err) {
-        // Silently fail - user can still submit new
-      } finally {
-        setLoadingExisting(false);
       }
+    } catch {
+      // Silently fail - backend will also validate
+    } finally {
+      setLoadingExisting(false);
     }
   }
 
@@ -851,7 +868,7 @@ export default function ServiceHub() {
               type="submit"
               className="btn btn-primary"
               style={{ background: '#e67e22' }}
-              disabled={submitting || urgentDates.length === 0}
+              disabled={submitting || urgentDates.length === 0 || (submitStatus?.type === 'error')}
             >
               {submitting ? 'Submitting...' : `Submit Urgent Vacation (${urgentDates.length} days)`}
             </button>
@@ -915,7 +932,7 @@ export default function ServiceHub() {
               type="submit"
               className="btn btn-primary"
               style={{ background: '#8e44ad' }}
-              disabled={submitting || !helpMessage.trim()}
+              disabled={submitting || !helpMessage.trim() || (submitStatus?.type === 'error')}
             >
               {submitting ? 'Submitting...' : 'Submit Help Request'}
             </button>
