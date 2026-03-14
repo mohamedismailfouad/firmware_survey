@@ -429,7 +429,7 @@ router.post('/send-plan-reminders', async (req, res) => {
 
     const fromName = process.env.EMAIL_FROM_NAME || 'AZKA Firmware Team';
     const fromAddress = process.env.EMAIL_USER;
-    const appUrl = 'https://firmware-survey-five.vercel.app';
+    const appUrl = 'https://firmware-survey-frw5.vercel.app';
     let sentCount = 0;
     const results = [];
 
