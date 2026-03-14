@@ -59,6 +59,17 @@ export function exportVacationsJSON(vacations) {
   URL.revokeObjectURL(url);
 }
 
+export async function sendPlanReminders(year, minDays = 10) {
+  const res = await fetch(`${API_BASE}/send-plan-reminders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ year, minDays }),
+  });
+  const result = await res.json();
+  if (!res.ok) throw new Error(result.error || 'Failed to send reminders');
+  return result;
+}
+
 export function exportVacationsCSV(vacations) {
   if (vacations.length === 0) return;
   let csv =

@@ -387,6 +387,151 @@ router.get('/reminders/check', async (req, res) => {
   }
 });
 
+// --- Send Plan Reminders (employees not submitted OR submitted < minDays) ---
+router.post('/send-plan-reminders', async (req, res) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const year = req.body.year || currentYear;
+    const minDays = req.body.minDays || 10; // default threshold: 10 days
+
+    // Find all vacation submissions for this year
+    const vacations = await Vacation.find({ year }).lean();
+    const vacByEmail = {};
+    vacations.forEach((v) => { vacByEmail[v.email.toLowerCase()] = v; });
+
+    // Find employees who haven't submitted OR submitted < minDays (exclude Management)
+    const targets = [];
+    for (const emp of EMPLOYEES) {
+      if (emp.department === 'Management') continue;
+      const vac = vacByEmail[emp.email.toLowerCase()];
+      if (!vac) {
+        targets.push({ employee: emp, reason: 'not_submitted', currentDays: 0 });
+      } else if (vac.totalDays < minDays) {
+        targets.push({ employee: emp, reason: 'insufficient', currentDays: vac.totalDays });
+      }
+    }
+
+    if (targets.length === 0) {
+      return res.json({ message: `All employees have submitted at least ${minDays} vacation days!`, sent: 0, results: [] });
+    }
+
+    // Set up email transporter
+    const nodemailer = await import('nodemailer');
+    const transporter = nodemailer.default.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const fromName = process.env.EMAIL_FROM_NAME || 'AZKA Firmware Team';
+    const fromAddress = process.env.EMAIL_USER;
+    const appUrl = 'https://firmware-survey-five.vercel.app';
+    let sentCount = 0;
+    const results = [];
+
+    for (const { employee, reason, currentDays } of targets) {
+      const reporter = getReporterEmail(employee.email);
+      const expText = employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
+
+      const alertMessage = reason === 'not_submitted'
+        ? `You have <strong>NOT yet submitted</strong> your annual vacation plan for ${year}.`
+        : `You have only submitted <strong>${currentDays} day${currentDays !== 1 ? 's' : ''}</strong> in your ${year} vacation plan. The minimum recommended is <strong>${minDays} days</strong>.`;
+
+      const html = `
+        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #e74c3c, #c0392b); padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h2 style="color: white; margin: 0;">&#9200; Vacation Plan Reminder</h2>
+            <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-size: 14px;">Year ${year} - Action Required</p>
+          </div>
+          <div style="background: #ffffff; padding: 25px; border: 1px solid #e0e0e0;">
+            <p style="font-size: 1.1rem; margin-bottom: 20px;">Dear <strong>${employee.name}</strong>,</p>
+
+            <div style="background: #fef2f2; border-left: 4px solid #e74c3c; padding: 15px; border-radius: 0 8px 8px 0; margin-bottom: 20px;">
+              <p style="margin: 0; color: #c0392b; font-weight: 600;">
+                ${alertMessage}
+              </p>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="color: #1a5f7a; margin-top: 0;">Your Details</h3>
+              <p style="margin: 5px 0;"><strong>Name:</strong> ${employee.name}</p>
+              <p style="margin: 5px 0;"><strong>Email:</strong> ${employee.email}</p>
+              <p style="margin: 5px 0;"><strong>HR Code:</strong> ${employee.hrCode}</p>
+              <p style="margin: 5px 0;"><strong>Department:</strong> ${employee.department}</p>
+              <p style="margin: 5px 0;"><strong>Title:</strong> ${employee.title || 'N/A'}</p>
+              <p style="margin: 5px 0;"><strong>Experience:</strong> ${expText}</p>
+              ${reason === 'insufficient' ? `<p style="margin: 5px 0;"><strong>Current Vacation Days:</strong> <span style="color: #e74c3c; font-weight: 600;">${currentDays} days</span> (minimum ${minDays})</p>` : ''}
+            </div>
+
+            <p style="margin-bottom: 20px; color: #333; line-height: 1.6;">
+              Please log in to the <strong>Firmware Team Services</strong> portal and ${reason === 'not_submitted' ? 'submit' : 'update'} your planned vacation days at your earliest convenience.
+            </p>
+
+            <div style="text-align: center; margin-bottom: 25px;">
+              <a href="${appUrl}" style="background: linear-gradient(135deg, #1a5f7a, #159895); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 1rem; display: inline-block;">
+                &#128279; ${reason === 'not_submitted' ? 'Submit' : 'Update'} Vacation Plan
+              </a>
+            </div>
+
+            <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="color: #1a5f7a; margin-top: 0;">Why is this important?</h3>
+              <ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.8;">
+                <li>Helps the team plan resources and workload</li>
+                <li>Avoids scheduling conflicts between team members</li>
+                <li>Ensures smooth project delivery throughout the year</li>
+                <li>Required for department planning and coordination</li>
+              </ul>
+            </div>
+
+            <p style="color: #666; font-size: 13px; text-align: center;">
+              If you have any questions, please contact your reporter or the Firmware Head.
+            </p>
+          </div>
+          <div style="background: #f8f9fa; padding: 15px; border-radius: 0 0 12px 12px; text-align: center; border: 1px solid #e0e0e0; border-top: none;">
+            <p style="color: #999; font-size: 12px; margin: 0;">AZKA Firmware Team - Vacation Management System</p>
+          </div>
+        </div>
+      `;
+
+      const subject = reason === 'not_submitted'
+        ? `Action Required: Submit Your ${year} Vacation Plan - ${employee.name} (${employee.department})`
+        : `Action Required: Update Your ${year} Vacation Plan (${currentDays}/${minDays} days) - ${employee.name} (${employee.department})`;
+      const ccList = [reporter].filter(Boolean);
+
+      try {
+        await transporter.sendMail({
+          from: `"${fromName}" <${fromAddress}>`,
+          to: employee.email,
+          cc: ccList.join(', '),
+          subject,
+          html,
+        });
+        sentCount++;
+        results.push({ name: employee.name, email: employee.email, department: employee.department, reason, currentDays, status: 'sent' });
+      } catch (emailErr) {
+        console.error(`Failed to send reminder to ${employee.email}:`, emailErr.message);
+        results.push({ name: employee.name, email: employee.email, department: employee.department, reason, currentDays, status: 'failed', error: emailErr.message });
+      }
+    }
+
+    res.json({
+      message: `Sent ${sentCount} of ${targets.length} reminder email(s)`,
+      sent: sentCount,
+      total: targets.length,
+      year,
+      minDays,
+      results,
+    });
+  } catch (err) {
+    console.error('Send plan reminders failed:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Get all vacations ---
 router.get('/', async (req, res) => {
   try {

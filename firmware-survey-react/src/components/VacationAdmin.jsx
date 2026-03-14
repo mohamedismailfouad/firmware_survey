@@ -5,6 +5,7 @@ import {
   fetchVacationStats,
   exportVacationsJSON,
   exportVacationsCSV,
+  sendPlanReminders,
 } from '../data/vacationUtils';
 import {
   fetchServiceRequests,
@@ -617,6 +618,10 @@ export default function VacationAdmin() {
   const [matrixMonth, setMatrixMonth] = useState(new Date().getMonth());
   const [matrixTooltip, setMatrixTooltip] = useState(null);
 
+  // Reminder state
+  const [reminderSending, setReminderSending] = useState(false);
+  const [reminderResult, setReminderResult] = useState(null);
+
   useEffect(() => {
     loadData();
   }, [yearFilter]);
@@ -1205,6 +1210,86 @@ export default function VacationAdmin() {
         tooltip={matrixTooltip}
         onTooltip={setMatrixTooltip}
       />
+
+      {/* Send Reminders Section */}
+      <div className="card" style={{ marginTop: 20 }}>
+        <h2 className="card-title">Send Vacation Plan Reminders</h2>
+        <p style={{ color: '#666', marginBottom: 15 }}>
+          Send email reminders to employees who have <strong>not submitted</strong> or submitted <strong>less than 10 days</strong> in their {yearFilter} vacation plan.
+        </p>
+        <button
+          className="btn btn-danger"
+          disabled={reminderSending}
+          onClick={async () => {
+            if (!window.confirm(`Send vacation plan reminders for ${yearFilter} to all employees with less than 10 vacation days?\n\nThis will send emails to each qualifying employee with their reporter in CC.`)) return;
+            setReminderSending(true);
+            setReminderResult(null);
+            try {
+              const result = await sendPlanReminders(yearFilter, 10);
+              setReminderResult(result);
+            } catch (err) {
+              setReminderResult({ error: err.message });
+            } finally {
+              setReminderSending(false);
+            }
+          }}
+          style={{ padding: '10px 25px', fontSize: '1rem' }}
+        >
+          {reminderSending ? 'Sending...' : `Send Reminders (${yearFilter})`}
+        </button>
+
+        {reminderResult && !reminderResult.error && (
+          <div style={{ marginTop: 15 }}>
+            <div style={{ background: '#d4edda', color: '#155724', padding: 12, borderRadius: 8, marginBottom: 10 }}>
+              <strong>{reminderResult.message}</strong>
+            </div>
+            {reminderResult.results && reminderResult.results.length > 0 && (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                <thead>
+                  <tr style={{ background: '#f8f9fa' }}>
+                    <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>Name</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '2px solid #dee2e6' }}>Department</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '2px solid #dee2e6' }}>Reason</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '2px solid #dee2e6' }}>Days</th>
+                    <th style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '2px solid #dee2e6' }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reminderResult.results.map((r, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #eee' }}>
+                      <td style={{ padding: '8px 12px' }}>{r.name}</td>
+                      <td style={{ padding: '8px 12px' }}>{r.department}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                        <span style={{
+                          background: r.reason === 'not_submitted' ? '#e74c3c' : '#e67e22',
+                          color: 'white', padding: '2px 8px', borderRadius: 10, fontSize: '0.8rem',
+                        }}>
+                          {r.reason === 'not_submitted' ? 'Not Submitted' : `Only ${r.currentDays} days`}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center' }}>{r.currentDays}</td>
+                      <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                        <span style={{
+                          color: r.status === 'sent' ? '#27ae60' : '#e74c3c',
+                          fontWeight: 600,
+                        }}>
+                          {r.status === 'sent' ? 'Sent' : 'Failed'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
+        {reminderResult && reminderResult.error && (
+          <div style={{ marginTop: 15, background: '#f8d7da', color: '#721c24', padding: 12, borderRadius: 8 }}>
+            <strong>Error:</strong> {reminderResult.error}
+          </div>
+        )}
+      </div>
     </div>
     )}
 
