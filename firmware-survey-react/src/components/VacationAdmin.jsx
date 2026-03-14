@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import {
   fetchVacations,
   deleteVacation,
@@ -35,6 +35,566 @@ const STATUS_COLORS = {
   rejected: '#e74c3c',
 };
 
+// ============ EMPLOYEE REGISTRY (for matrix display names & departments) ============
+const EMPLOYEE_MAP = {
+  'omar.mahmoud@azka.com.eg': { name: 'Omar Mahmoud', dept: 'DLMS' },
+  'mohamed.hamed@azka.com.eg': { name: 'Mohamed Elsayed', dept: 'DLMS' },
+  'hesham.galal@azka.com.eg': { name: 'Hesham Galal', dept: 'DLMS' },
+  'abdelrahman.moussa@azka.com.eg': { name: 'Abdelrahman Moussa', dept: 'DLMS' },
+  'ahmed.hamamsy@azka.com.eg': { name: 'Ahmed ElHamamsy', dept: 'DLMS' },
+  'saeed.elfayoumy@azka.com.eg': { name: 'Saeed Elfayoumy', dept: 'DLMS' },
+  'ahmed.hassan@azka.com.eg': { name: 'Ahmed Hassan', dept: 'DLMS' },
+  'nourhan.refaie@azka.com.eg': { name: 'Nourhan Alrefaei', dept: 'DLMS' },
+  'mervat.abdelrahman@azka.com.eg': { name: 'Mervat Abdelrahman', dept: 'Flow' },
+  'ali.morsy@azka.com.eg': { name: 'Ali Morsy', dept: 'Flow' },
+  'hossam.abdullah@azka.com.eg': { name: 'Hossam Abdullah', dept: 'Flow' },
+  'mohamed.taman@azka.com.eg': { name: 'Mohamed Taman', dept: 'Flow' },
+  'mohamed.merdan@azka.com.eg': { name: 'Mohamed Merdan', dept: 'Flow' },
+  'mohamed.shaheen@azka.com.eg': { name: 'Mohamed Shahin', dept: 'Flow' },
+  'nahla.hussin@azka.com.eg': { name: 'Nahla Hussien', dept: 'Flow' },
+  'ahmed.elsayed@azka.com.eg': { name: 'Ahmed ElSayed', dept: 'Flow' },
+  'muaaz.rashad@azka.com.eg': { name: 'Muaaz Rashad', dept: 'Flow' },
+  'samar.mohamed@azka.com.eg': { name: 'Samar Mohamed', dept: 'Flow' },
+  'moustafa.abdelwahab@azka.com.eg': { name: 'Mostafa Abdelwahab', dept: 'Flow' },
+  'ahmed.lotfy@azka.com.eg': { name: 'Ahmed Lotfy', dept: 'Flow' },
+  'ahmed.gaber@azka.com.eg': { name: 'Ahmed Gaber', dept: 'Prepaid' },
+  'ahmed.elhossiny@azka.com.eg': { name: 'Ahmed Elhossiny', dept: 'Prepaid' },
+  'ahmed.abdelnaby@azka.com.eg': { name: 'Ahmed Abdelnaby', dept: 'Prepaid' },
+  'nour.ashraf@azka.com.eg': { name: 'Nour Ashraf', dept: 'Prepaid' },
+  'hassan.hafez@azka.com.eg': { name: 'Hassan Hafez', dept: 'Prepaid' },
+  'ahmed.abdeltawab@azka.com.eg': { name: 'Ahmed Elzoughby', dept: 'R&D' },
+  'mohamed.medhat@azka.com.eg': { name: 'Mohamed Medhat', dept: 'R&D' },
+  'mahmoud.youness@azka.com.eg': { name: 'Mahmoud Youness', dept: 'R&D' },
+  'saif.eldin@azka.com.eg': { name: 'Sief Eldin', dept: 'R&D' },
+  'mohamed.magdy@azka.com.eg': { name: 'Mohamed Magdy', dept: 'R&D' },
+  'abdelrahman.kadah@azka.com.eg': { name: 'Abdelrahman Kadah', dept: 'R&D' },
+  'moemen.ahmed@azka.com.eg': { name: 'Momen Ahmed', dept: 'R&D' },
+  'mohamed.essa@azka.com.eg': { name: 'Mohamed Essa', dept: 'Management' },
+};
+
+const DEPT_COLORS = {
+  DLMS: '#1a5f7a',
+  Flow: '#159895',
+  Prepaid: '#e67e22',
+  'R&D': '#8e44ad',
+  Management: '#2c3e50',
+};
+
+const DEPT_ORDER = ['DLMS', 'Flow', 'Prepaid', 'R&D', 'Management'];
+
+// ============ VACATION MATRIX COMPONENT ============
+function VacationMatrix({ vacations, year, month, onMonthChange, onYearChange, tooltip, onTooltip }) {
+  // Build a lookup: dateStr -> [emails]
+  const dateMap = useMemo(() => {
+    const map = {};
+    vacations.forEach((v) => {
+      v.vacationDays.forEach((d) => {
+        if (!map[d]) map[d] = [];
+        map[d].push(v.email);
+      });
+    });
+    return map;
+  }, [vacations]);
+
+  // Build per-employee vacation set
+  const employeeVacDays = useMemo(() => {
+    const map = {};
+    vacations.forEach((v) => {
+      if (!map[v.email]) map[v.email] = new Set();
+      v.vacationDays.forEach((d) => map[v.email].add(d));
+    });
+    return map;
+  }, [vacations]);
+
+  // Get all employees who have vacations, grouped by department
+  const groupedEmployees = useMemo(() => {
+    const emails = Object.keys(employeeVacDays);
+    const groups = {};
+    DEPT_ORDER.forEach((dept) => { groups[dept] = []; });
+
+    emails.forEach((email) => {
+      const info = EMPLOYEE_MAP[email.toLowerCase()];
+      const dept = info?.dept || 'Other';
+      if (!groups[dept]) groups[dept] = [];
+      groups[dept].push({ email, name: info?.name || email.split('@')[0], dept });
+    });
+
+    return DEPT_ORDER
+      .filter((dept) => groups[dept]?.length > 0)
+      .map((dept) => ({ dept, employees: groups[dept] }));
+  }, [employeeVacDays]);
+
+  // Get days in the selected month
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  // Check if a day is a weekend (Fri=5, Sat=6)
+  function isWeekend(day) {
+    const d = new Date(year, month, day);
+    const dow = d.getDay();
+    return dow === 5 || dow === 6;
+  }
+
+  // Format date to YYYY-MM-DD
+  function toDateStr(day) {
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+
+  // Count total vacation days for employee in this month
+  function monthTotal(email) {
+    let count = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = toDateStr(d);
+      if (employeeVacDays[email]?.has(ds)) count++;
+    }
+    return count;
+  }
+
+  // Get overlap count for a day
+  function overlapCount(day) {
+    const ds = toDateStr(day);
+    return dateMap[ds]?.length || 0;
+  }
+
+  // Compute month-level stats
+  const monthStats = useMemo(() => {
+    let totalDays = 0;
+    let peakOverlap = 0;
+    let peakDate = '';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = toDateStr(d);
+      const count = dateMap[ds]?.length || 0;
+      totalDays += count;
+      if (count > peakOverlap) {
+        peakOverlap = count;
+        peakDate = ds;
+      }
+    }
+    const employeesOnVac = new Set();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = toDateStr(d);
+      (dateMap[ds] || []).forEach((e) => employeesOnVac.add(e));
+    }
+    return { totalDays, peakOverlap, peakDate, uniqueEmployees: employeesOnVac.size };
+  }, [dateMap, daysInMonth, month, year]);
+
+  // Annual summary per employee
+  const annualSummary = useMemo(() => {
+    return Object.entries(employeeVacDays).map(([email, daysSet]) => {
+      const info = EMPLOYEE_MAP[email.toLowerCase()];
+      return {
+        email,
+        name: info?.name || email.split('@')[0],
+        dept: info?.dept || 'Other',
+        total: daysSet.size,
+        byMonth: MONTH_NAMES.map((_, mi) => {
+          let count = 0;
+          const dim = new Date(year, mi + 1, 0).getDate();
+          for (let d = 1; d <= dim; d++) {
+            const ds = `${year}-${String(mi + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            if (daysSet.has(ds)) count++;
+          }
+          return count;
+        }),
+      };
+    }).sort((a, b) => b.total - a.total);
+  }, [employeeVacDays, year]);
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  return (
+    <>
+      {/* Month Stats Cards */}
+      <div className="card">
+        <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+          <span>Vacation Matrix - {MONTH_FULL[month]} {year}</span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <select value={year} onChange={(e) => onYearChange(Number(e.target.value))} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #ddd', fontSize: '0.9rem' }}>
+              {[2024, 2025, 2026, 2027, 2028].map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        </h2>
+
+        {/* Month selector pills */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
+          {MONTH_NAMES.map((m, i) => (
+            <button
+              key={i}
+              onClick={() => onMonthChange(i)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 20,
+                border: i === month ? '2px solid var(--primary)' : '1px solid #ddd',
+                background: i === month ? 'var(--primary)' : 'white',
+                color: i === month ? 'white' : '#555',
+                fontWeight: i === month ? 700 : 400,
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                transition: 'all 0.15s',
+              }}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+
+        {/* Stats row */}
+        <div className="stats-grid" style={{ marginBottom: 20 }}>
+          <div className="stat-card">
+            <h3>{monthStats.totalDays}</h3>
+            <p>Vacation Days</p>
+          </div>
+          <div className="stat-card">
+            <h3>{monthStats.uniqueEmployees}</h3>
+            <p>Employees on Vacation</p>
+          </div>
+          <div className="stat-card">
+            <h3>{monthStats.peakOverlap}</h3>
+            <p>Peak Overlap</p>
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div style={{ display: 'flex', gap: 15, flexWrap: 'wrap', marginBottom: 15, fontSize: '0.8rem', color: '#666' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 16, height: 16, borderRadius: 3, background: '#27ae60', display: 'inline-block' }}></span> Vacation (1 person)
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 16, height: 16, borderRadius: 3, background: '#e67e22', display: 'inline-block' }}></span> Overlap (2-3)
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 16, height: 16, borderRadius: 3, background: '#e74c3c', display: 'inline-block' }}></span> High Overlap (4+)
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 16, height: 16, borderRadius: 3, background: '#f0f0f0', border: '1px solid #ddd', display: 'inline-block' }}></span> Weekend
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 16, height: 16, borderRadius: 3, background: 'white', border: '2px solid #2980b9', display: 'inline-block' }}></span> Today
+          </span>
+        </div>
+      </div>
+
+      {/* Matrix Grid */}
+      <div className="card" style={{ overflow: 'auto', position: 'relative' }}>
+        <h2 className="card-title">Daily View - {MONTH_FULL[month]} {year}</h2>
+
+        {groupedEmployees.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
+            <h3>No vacation data for {year}</h3>
+            <p>Employees need to submit their vacation plans first.</p>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', width: '100%', minWidth: 900 }}>
+              <thead>
+                <tr>
+                  <th style={{ position: 'sticky', left: 0, zIndex: 2, background: '#1a5f7a', color: 'white', padding: '8px 10px', textAlign: 'left', minWidth: 150 }}>
+                    Employee
+                  </th>
+                  {days.map((d) => {
+                    const we = isWeekend(d);
+                    const ds = toDateStr(d);
+                    const isToday = ds === todayStr;
+                    const oc = overlapCount(d);
+                    return (
+                      <th
+                        key={d}
+                        style={{
+                          padding: '4px 0',
+                          textAlign: 'center',
+                          minWidth: 28,
+                          background: isToday ? '#2980b9' : we ? '#95a5a6' : '#1a5f7a',
+                          color: 'white',
+                          fontSize: '0.72rem',
+                          fontWeight: isToday ? 800 : 400,
+                          borderLeft: '1px solid rgba(255,255,255,0.15)',
+                        }}
+                      >
+                        <div>{d}</div>
+                        <div style={{ fontSize: '0.6rem', opacity: 0.7 }}>
+                          {['Su','Mo','Tu','We','Th','Fr','Sa'][new Date(year, month, d).getDay()]}
+                        </div>
+                        {oc >= 2 && (
+                          <div style={{
+                            fontSize: '0.6rem',
+                            background: oc >= 4 ? '#e74c3c' : '#e67e22',
+                            borderRadius: 8,
+                            padding: '0 4px',
+                            margin: '2px auto 0',
+                            width: 'fit-content',
+                          }}>
+                            {oc}
+                          </div>
+                        )}
+                      </th>
+                    );
+                  })}
+                  <th style={{ background: '#1a5f7a', color: 'white', padding: '8px 6px', textAlign: 'center', minWidth: 40 }}>
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupedEmployees.map(({ dept, employees }) => (
+                  <Fragment key={dept}>
+                    {/* Department header row */}
+                    <tr>
+                      <td
+                        colSpan={days.length + 2}
+                        style={{
+                          background: DEPT_COLORS[dept] || '#666',
+                          color: 'white',
+                          padding: '6px 10px',
+                          fontWeight: 700,
+                          fontSize: '0.82rem',
+                          letterSpacing: '0.5px',
+                        }}
+                      >
+                        {dept} ({employees.length})
+                      </td>
+                    </tr>
+                    {/* Employee rows */}
+                    {employees.map((emp) => {
+                      const mt = monthTotal(emp.email);
+                      return (
+                        <tr key={emp.email} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                          <td style={{
+                            position: 'sticky',
+                            left: 0,
+                            zIndex: 1,
+                            background: 'white',
+                            padding: '6px 10px',
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap',
+                            borderRight: `3px solid ${DEPT_COLORS[emp.dept] || '#ccc'}`,
+                            fontSize: '0.82rem',
+                          }}>
+                            {emp.name}
+                          </td>
+                          {days.map((d) => {
+                            const ds = toDateStr(d);
+                            const we = isWeekend(d);
+                            const isToday = ds === todayStr;
+                            const onVac = employeeVacDays[emp.email]?.has(ds);
+                            const oc = dateMap[ds]?.length || 0;
+
+                            let bg = 'white';
+                            let borderColor = 'transparent';
+                            if (we && !onVac) bg = '#f5f5f5';
+                            if (onVac) {
+                              bg = oc >= 4 ? '#e74c3c' : oc >= 2 ? '#e67e22' : '#27ae60';
+                            }
+                            if (isToday) borderColor = '#2980b9';
+
+                            return (
+                              <td
+                                key={d}
+                                style={{
+                                  padding: 0,
+                                  textAlign: 'center',
+                                  borderLeft: '1px solid #f0f0f0',
+                                  position: 'relative',
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (onVac || (dateMap[ds]?.length || 0) > 0) {
+                                    const rect = e.target.getBoundingClientRect();
+                                    onTooltip({
+                                      x: rect.left + rect.width / 2,
+                                      y: rect.top - 5,
+                                      date: ds,
+                                      employee: emp.name,
+                                      isOnVac: onVac,
+                                      overlap: dateMap[ds] || [],
+                                    });
+                                  }
+                                }}
+                                onMouseLeave={() => onTooltip(null)}
+                              >
+                                <div style={{
+                                  width: '100%',
+                                  height: 26,
+                                  background: bg,
+                                  border: isToday ? `2px solid ${borderColor}` : 'none',
+                                  borderRadius: isToday ? 4 : 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: onVac ? 'white' : 'transparent',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 700,
+                                }}>
+                                  {onVac && (oc >= 2 ? oc : '')}
+                                </div>
+                              </td>
+                            );
+                          })}
+                          <td style={{
+                            textAlign: 'center',
+                            fontWeight: 700,
+                            padding: '4px 6px',
+                            background: mt > 0 ? '#e8f8f5' : 'white',
+                            color: mt > 0 ? '#1a5f7a' : '#ccc',
+                            fontSize: '0.85rem',
+                          }}>
+                            {mt || '-'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </Fragment>
+                ))}
+                {/* Overlap summary row */}
+                <tr style={{ borderTop: '2px solid #1a5f7a' }}>
+                  <td style={{
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 1,
+                    background: '#f8f9fa',
+                    padding: '6px 10px',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    color: '#1a5f7a',
+                  }}>
+                    Total on Leave
+                  </td>
+                  {days.map((d) => {
+                    const ds = toDateStr(d);
+                    const oc = dateMap[ds]?.length || 0;
+                    const we = isWeekend(d);
+                    return (
+                      <td key={d} style={{
+                        textAlign: 'center',
+                        padding: '4px 0',
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        background: oc >= 4 ? '#fdedec' : oc >= 2 ? '#fef9e7' : '#f8f9fa',
+                        color: oc >= 4 ? '#e74c3c' : oc >= 2 ? '#e67e22' : oc > 0 ? '#27ae60' : (we ? '#bbb' : '#ddd'),
+                        borderLeft: '1px solid #f0f0f0',
+                      }}>
+                        {oc || (we ? '-' : '')}
+                      </td>
+                    );
+                  })}
+                  <td style={{ textAlign: 'center', fontWeight: 700, background: '#f8f9fa', color: '#1a5f7a', fontSize: '0.85rem' }}>
+                    {monthStats.totalDays}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Annual Overview Heatmap */}
+      <div className="card">
+        <h2 className="card-title">Annual Overview - {year}</h2>
+        <p style={{ color: '#666', marginBottom: 15, fontSize: '0.88rem' }}>
+          Monthly breakdown per employee. Darker = more vacation days.
+        </p>
+
+        {annualSummary.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 30, color: '#999' }}>No data</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ borderCollapse: 'collapse', fontSize: '0.82rem', width: '100%' }}>
+              <thead>
+                <tr>
+                  <th style={{ background: '#1a5f7a', color: 'white', padding: '8px 10px', textAlign: 'left', minWidth: 150, position: 'sticky', left: 0, zIndex: 2 }}>Employee</th>
+                  <th style={{ background: '#1a5f7a', color: 'white', padding: '8px 6px', textAlign: 'left', minWidth: 60 }}>Dept</th>
+                  {MONTH_NAMES.map((m) => (
+                    <th key={m} style={{ background: '#1a5f7a', color: 'white', padding: '8px 6px', textAlign: 'center', minWidth: 38 }}>{m}</th>
+                  ))}
+                  <th style={{ background: '#1a5f7a', color: 'white', padding: '8px 8px', textAlign: 'center', minWidth: 45 }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {annualSummary.map((emp) => (
+                  <tr key={emp.email} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '7px 10px', fontWeight: 500, position: 'sticky', left: 0, background: 'white', zIndex: 1, borderRight: `3px solid ${DEPT_COLORS[emp.dept] || '#ccc'}` }}>
+                      {emp.name}
+                    </td>
+                    <td style={{ padding: '7px 6px', fontSize: '0.75rem', color: DEPT_COLORS[emp.dept] || '#666', fontWeight: 600 }}>
+                      {emp.dept}
+                    </td>
+                    {emp.byMonth.map((count, mi) => {
+                      const intensity = count === 0 ? 0 : Math.min(count / 8, 1);
+                      const r = Math.round(26 + (39 - 26) * (1 - intensity));
+                      const g = Math.round(174 + (152 - 174) * (1 - intensity));
+                      const b = Math.round(96 + (149 - 96) * (1 - intensity));
+                      return (
+                        <td
+                          key={mi}
+                          style={{
+                            textAlign: 'center',
+                            padding: '4px 2px',
+                            background: count > 0 ? `rgba(${r}, ${g}, ${b}, ${0.3 + intensity * 0.7})` : 'white',
+                            color: count > 0 ? (intensity > 0.5 ? 'white' : '#333') : '#ddd',
+                            fontWeight: count > 0 ? 700 : 400,
+                            fontSize: '0.8rem',
+                            cursor: count > 0 ? 'pointer' : 'default',
+                            borderLeft: '1px solid #f0f0f0',
+                          }}
+                          onClick={() => { if (count > 0) onMonthChange(mi); }}
+                        >
+                          {count || '-'}
+                        </td>
+                      );
+                    })}
+                    <td style={{
+                      textAlign: 'center',
+                      fontWeight: 800,
+                      padding: '7px 8px',
+                      background: emp.total > 15 ? '#fdedec' : emp.total > 10 ? '#fef9e7' : '#e8f8f5',
+                      color: emp.total > 15 ? '#e74c3c' : emp.total > 10 ? '#e67e22' : '#1a5f7a',
+                      fontSize: '0.9rem',
+                    }}>
+                      {emp.total}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Tooltip */}
+      {tooltip && (
+        <div style={{
+          position: 'fixed',
+          left: tooltip.x,
+          top: tooltip.y,
+          transform: 'translate(-50%, -100%)',
+          background: '#1a2332',
+          color: 'white',
+          padding: '8px 14px',
+          borderRadius: 8,
+          fontSize: '0.78rem',
+          zIndex: 1000,
+          pointerEvents: 'none',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+          maxWidth: 250,
+          lineHeight: 1.5,
+        }}>
+          <div style={{ fontWeight: 700, marginBottom: 3 }}>
+            {new Date(tooltip.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+          </div>
+          {tooltip.isOnVac && <div style={{ color: '#2ecc71' }}>{tooltip.employee} is on vacation</div>}
+          {tooltip.overlap.length > 1 && (
+            <div style={{ marginTop: 3, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: 3 }}>
+              <span style={{ color: '#e67e22' }}>{tooltip.overlap.length} people on leave:</span>
+              <div style={{ color: '#bbb' }}>
+                {tooltip.overlap.map((e) => EMPLOYEE_MAP[e.toLowerCase()]?.name || e.split('@')[0]).join(', ')}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function VacationAdmin() {
   const [adminTab, setAdminTab] = useState('vacations');
   const [vacations, setVacations] = useState([]);
@@ -52,6 +612,10 @@ export default function VacationAdmin() {
   const [serviceStatusFilter, setServiceStatusFilter] = useState('');
   const [serviceSearchFilter, setServiceSearchFilter] = useState('');
   const [viewingService, setViewingService] = useState(null);
+
+  // Matrix state
+  const [matrixMonth, setMatrixMonth] = useState(new Date().getMonth());
+  const [matrixTooltip, setMatrixTooltip] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -176,7 +740,7 @@ export default function VacationAdmin() {
     return Object.entries(grouped);
   }
 
-  if (loading && adminTab === 'vacations') {
+  if (loading && (adminTab === 'vacations' || adminTab === 'matrix')) {
     return (
       <div className="card" style={{ textAlign: 'center', padding: 40 }}>
         <h3 style={{ color: 'var(--primary)' }}>Loading vacation data...</h3>
@@ -197,6 +761,12 @@ export default function VacationAdmin() {
           onClick={() => setAdminTab('vacations')}
         >
           Vacations
+        </button>
+        <button
+          className={`admin-sub-tab ${adminTab === 'matrix' ? 'active' : ''}`}
+          onClick={() => setAdminTab('matrix')}
+        >
+          Vacation Matrix
         </button>
         <button
           className={`admin-sub-tab ${adminTab === 'services' ? 'active' : ''}`}
@@ -620,6 +1190,21 @@ export default function VacationAdmin() {
           </div>
         </div>
       )}
+    </div>
+    )}
+
+    {/* ========== VACATION MATRIX TAB ========== */}
+    {adminTab === 'matrix' && (
+    <div>
+      <VacationMatrix
+        vacations={vacations}
+        year={yearFilter}
+        month={matrixMonth}
+        onMonthChange={setMatrixMonth}
+        onYearChange={setYearFilter}
+        tooltip={matrixTooltip}
+        onTooltip={setMatrixTooltip}
+      />
     </div>
     )}
 
