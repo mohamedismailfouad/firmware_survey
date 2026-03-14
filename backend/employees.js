@@ -10,7 +10,7 @@ export const EMPLOYEES = [
   { hrCode: '1230051', name: 'Ahmed M. ElHamamsy', email: 'ahmed.hamamsy@azka.com.eg', department: 'DLMS', experience: 5, title: 'Senior', reporter: 'omar.mahmoud@azka.com.eg' },
   { hrCode: '1230078', name: 'Saeed Alaa Elfayoumy', email: 'saeed.elfayoumy@azka.com.eg', department: 'DLMS', experience: 5, title: 'Junior', reporter: 'omar.mahmoud@azka.com.eg' },
   { hrCode: '1230036', name: 'Ahmed Hassan Zakaria', email: 'ahmed.hassan@azka.com.eg', department: 'DLMS', experience: 4, title: 'Junior', reporter: 'omar.mahmoud@azka.com.eg' },
-  { hrCode: '1230012', name: 'Nourhan M. Alrefaei', email: 'nourhan.refaie@azka.com.eg', department: 'DLMS', experience: null, title: 'N/A', reporter: 'omar.mahmoud@azka.com.eg' },
+  { hrCode: '1230012', name: 'Nourhan M. Alrefaei', email: 'nourhan.refaie@azka.com.eg', department: 'DLMS', experience: 3, title: 'Junior', reporter: 'omar.mahmoud@azka.com.eg' },
   // Flow Department
   { hrCode: '1220134', name: 'Mervat Abdelrahman', email: 'mervat.abdelrahman@azka.com.eg', department: 'Flow', experience: null, title: 'TeamLead', reporter: 'mohamed.essa@azka.com.eg' },
   { hrCode: '1230035', name: 'Ali Mahmoud Morsy', email: 'ali.morsy@azka.com.eg', department: 'Flow', experience: 5, title: 'Senior', reporter: 'mohamed.taman@azka.com.eg' },
@@ -25,7 +25,7 @@ export const EMPLOYEES = [
   { hrCode: '1240005', name: 'Mostafa Abdelwahab', email: 'moustafa.abdelwahab@azka.com.eg', department: 'Flow', experience: 2, title: 'Junior', reporter: 'mohamed.taman@azka.com.eg' },
   { hrCode: '5240058', name: 'Ahmed Lotfy Mohamed', email: 'ahmed.lotfy@azka.com.eg', department: 'Flow', experience: 8, title: 'Senior', reporter: 'mohamed.taman@azka.com.eg' },
   // Prepaid Department
-  { hrCode: '1230058', name: 'Ahmed Gaber Mohammed', email: 'ahmed.gaber@azka.com.eg', department: 'Prepaid', experience: null, title: 'N/A', reporter: 'mohamed.essa@azka.com.eg' },
+  { hrCode: '1230058', name: 'Ahmed Gaber Mohammed', email: 'ahmed.gaber@azka.com.eg', department: 'Prepaid', experience: 8, title: 'Senior', reporter: 'mohamed.essa@azka.com.eg' },
   { hrCode: '1220243', name: 'Ahmed Adel Elhossiny', email: 'ahmed.elhossiny@azka.com.eg', department: 'Prepaid', experience: 5, title: 'Senior', reporter: 'ahmed.gaber@azka.com.eg' },
   { hrCode: '1230038', name: 'Ahmed Mustafa Abdelnaby', email: 'ahmed.abdelnaby@azka.com.eg', department: 'Prepaid', experience: 5, title: 'Junior', reporter: 'ahmed.gaber@azka.com.eg' },
   { hrCode: '1230053', name: 'Nour Eldean Ashraf', email: 'nour.ashraf@azka.com.eg', department: 'Prepaid', experience: 4, title: 'Junior', reporter: 'ahmed.gaber@azka.com.eg' },
