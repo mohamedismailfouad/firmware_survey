@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AZKA Firmware - Email Notification System Report</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #333; padding: 30px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { background: linear-gradient(135deg, #1a5f7a, #159895); padding: 30px 40px; border-radius: 16px 16px 0 0; text-align: center; color: white; }
+    .header h1 { font-size: 1.8rem; margin-bottom: 5px; }
+    .header p { opacity: 0.85; font-size: 0.95rem; }
+    .body-section { background: #fff; padding: 30px 40px; border: 1px solid #e0e0e0; border-top: none; }
+    .footer { background: #f8f9fa; padding: 15px 40px; border-radius: 0 0 16px 16px; border: 1px solid #e0e0e0; border-top: none; text-align: center; color: #999; font-size: 0.8rem; }
+
+    h2 { color: #1a5f7a; margin: 30px 0 15px 0; font-size: 1.3rem; border-bottom: 2px solid #159895; padding-bottom: 8px; }
+    h2:first-child { margin-top: 0; }
+    h3 { color: #1a5f7a; margin: 20px 0 10px 0; font-size: 1.05rem; }
+
+    .config-box { background: #f8f9fa; border: 1px solid #e8e8e8; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+    .config-box p { margin: 6px 0; font-size: 0.92rem; line-height: 1.5; }
+    .config-box code { background: #e8f4f8; padding: 2px 8px; border-radius: 4px; font-size: 0.88rem; color: #1a5f7a; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px 0; font-size: 0.88rem; }
+    th { background: #1a5f7a; color: white; padding: 10px 12px; text-align: left; font-weight: 600; }
+    td { padding: 9px 12px; border-bottom: 1px solid #eee; }
+    tr:hover td { background: #f5fafe; }
+    tr:last-child td { border-bottom: none; }
+
+    .badge { display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; color: white; }
+    .badge-green { background: #27ae60; }
+    .badge-red { background: #e74c3c; }
+    .badge-orange { background: #e67e22; }
+    .badge-blue { background: #2980b9; }
+    .badge-gray { background: #95a5a6; }
+    .badge-purple { background: #8e44ad; }
+    .badge-teal { background: #159895; }
+
+    .notification-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+    .notification-card .card-header { padding: 14px 20px; font-weight: 700; font-size: 1rem; color: white; }
+    .notification-card .card-body { padding: 20px; }
+    .notification-card .card-body table { margin: 8px 0 0 0; }
+    .notification-card .card-body table th { background: #f0f0f0; color: #333; font-size: 0.85rem; }
+    .notification-card .card-body table td { font-size: 0.88rem; }
+
+    .flow-diagram { background: #1a2332; color: #e0e0e0; padding: 25px; border-radius: 10px; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.85rem; line-height: 2; margin: 15px 0; overflow-x: auto; }
+    .flow-diagram .arrow { color: #159895; font-weight: bold; }
+    .flow-diagram .highlight { color: #f39c12; }
+    .flow-diagram .email { color: #3498db; }
+
+    .dept-header { background: #e8f4f8; }
+    .dept-header td { font-weight: 700; color: #1a5f7a; padding: 12px; border-bottom: 2px solid #159895; }
+    .reporter-col { background: #fffde7; }
+    .reporter-header { background: #e67e22 !important; }
+
+    @media print {
+      body { background: white; padding: 10px; }
+      .notification-card { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Email Notification System Report</h1>
+      <p>AZKA Firmware Team - Generated on March 14, 2026</p>
+    </div>
+
+    <div class="body-section">
+
+      <!-- ============ SMTP CONFIG ============ -->
+      <h2>1. SMTP Configuration</h2>
+      <div class="config-box">
+        <p><strong>SMTP Host:</strong> <code>smtp.gmail.com</code> (Port 587, TLS)</p>
+        <p><strong>Sender Account:</strong> <code>process.env.EMAIL_USER</code> / <code>process.env.EMAIL_PASS</code> (Gmail App Password)</p>
+        <p><strong>Sender Display Name:</strong> <code>process.env.EMAIL_FROM_NAME</code> || <code>"AZKA Firmware Team"</code></p>
+        <p><strong>Global CC (Services &amp; Vacations):</strong> <code>process.env.EMAIL_CC</code></p>
+        <p><strong>Manager Email (Reminders):</strong> <code>mohamed.essa@azka.com.eg</code> (hardcoded in vacationRoutes.js)</p>
+        <p><strong>Survey Notification To:</strong> <code>azka.innovation@gmail.com</code> (hardcoded in emailService.js)</p>
+      </div>
+
+      <!-- ============ REPORTER ASSIGNMENTS ============ -->
+      <h2>2. Per-Employee Reporter Assignments</h2>
+      <p style="margin-bottom: 12px; font-size: 0.92rem; color: #555;">
+        Each employee has a designated <strong>Reporter</strong> who is CC'd on all their email notifications
+        (vacation, service requests, status changes, reminders).
+        <br>Defined in <code>backend/employees.js</code> &rarr; <code>EMPLOYEES[].reporter</code> field, resolved by <code>getReporterEmail(email)</code>
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:30px;">#</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Department</th>
+            <th>Title</th>
+            <th class="reporter-header">Reporter</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- DLMS -->
+          <tr class="dept-header"><td colspan="6">DLMS Department (8 members)</td></tr>
+          <tr><td>1</td><td>Omar Mahmoud Abdelhady</td><td>omar.mahmoud@azka.com.eg</td><td>DLMS</td><td><span class="badge badge-green">TeamLead</span></td><td class="reporter-col">mohamed.essa@azka.com.eg</td></tr>
+          <tr><td>2</td><td>Mohamed Elsayed Mohamed</td><td>mohamed.hamed@azka.com.eg</td><td>DLMS</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">mervat.abdelrahman@azka.com.eg</td></tr>
+          <tr><td>3</td><td>Hesham Galal Mostafa</td><td>hesham.galal@azka.com.eg</td><td>DLMS</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">omar.mahmoud@azka.com.eg</td></tr>
+          <tr><td>4</td><td>Abdelrahman Moussa</td><td>abdelrahman.moussa@azka.com.eg</td><td>DLMS</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">omar.mahmoud@azka.com.eg</td></tr>
+          <tr><td>5</td><td>Ahmed M. ElHamamsy</td><td>ahmed.hamamsy@azka.com.eg</td><td>DLMS</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">omar.mahmoud@azka.com.eg</td></tr>
+          <tr><td>6</td><td>Saeed Alaa Elfayoumy</td><td>saeed.elfayoumy@azka.com.eg</td><td>DLMS</td><td><span class="badge badge-purple">Junior</span></td><td class="reporter-col">omar.mahmoud@azka.com.eg</td></tr>
+          <tr><td>7</td><td>Ahmed Hassan Zakaria</td><td>ahmed.hassan@azka.com.eg</td><td>DLMS</td><td><span class="badge badge-purple">Junior</span></td><td class="reporter-col">omar.mahmoud@azka.com.eg</td></tr>
+          <tr><td>8</td><td>Nourhan M. Alrefaei</td><td>nourhan.refaie@azka.com.eg</td><td>DLMS</td><td><span class="badge badge-gray">N/A</span></td><td class="reporter-col">omar.mahmoud@azka.com.eg</td></tr>
+
+          <!-- Flow -->
+          <tr class="dept-header"><td colspan="6">Flow Department (12 members)</td></tr>
+          <tr><td>9</td><td>Mervat Abdelrahman</td><td>mervat.abdelrahman@azka.com.eg</td><td>Flow</td><td><span class="badge badge-green">TeamLead</span></td><td class="reporter-col">mohamed.essa@azka.com.eg</td></tr>
+          <tr><td>10</td><td>Ali Mahmoud Morsy</td><td>ali.morsy@azka.com.eg</td><td>Flow</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">mohamed.taman@azka.com.eg</td></tr>
+          <tr><td>11</td><td>Hossam Abdullah Mekhamer</td><td>hossam.abdullah@azka.com.eg</td><td>Flow</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">mervat.abdelrahman@azka.com.eg</td></tr>
+          <tr><td>12</td><td>Mohamed Salah Taman</td><td>mohamed.taman@azka.com.eg</td><td>Flow</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">mohamed.essa@azka.com.eg</td></tr>
+          <tr><td>13</td><td>Mohamed Ashraf Merdan</td><td>mohamed.merdan@azka.com.eg</td><td>Flow</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">mervat.abdelrahman@azka.com.eg</td></tr>
+          <tr><td>14</td><td>Mohamed Sayed Shahin</td><td>mohamed.shaheen@azka.com.eg</td><td>Flow</td><td><span class="badge badge-purple">Junior</span></td><td class="reporter-col">mervat.abdelrahman@azka.com.eg</td></tr>
+          <tr><td>15</td><td>Nahla Hussien Rizk</td><td>nahla.hussin@azka.com.eg</td><td>Flow</td><td><span class="badge badge-purple">Junior</span></td><td class="reporter-col">mervat.abdelrahman@azka.com.eg</td></tr>
+          <tr><td>16</td><td>Ahmed ElSayed Abd Elkader</td><td>ahmed.elsayed@azka.com.eg</td><td>Flow</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">mervat.abdelrahman@azka.com.eg</td></tr>
+          <tr><td>17</td><td>Muaaz Rashad Sewilam</td><td>muaaz.rashad@azka.com.eg</td><td>Flow</td><td><span class="badge badge-purple">Junior</span></td><td class="reporter-col">mohamed.taman@azka.com.eg</td></tr>
+          <tr><td>18</td><td>Samar M. Abdolmonem</td><td>samar.mohamed@azka.com.eg</td><td>Flow</td><td><span class="badge badge-purple">Junior</span></td><td class="reporter-col">mohamed.taman@azka.com.eg</td></tr>
+          <tr><td>19</td><td>Mostafa Abdelwahab</td><td>moustafa.abdelwahab@azka.com.eg</td><td>Flow</td><td><span class="badge badge-purple">Junior</span></td><td class="reporter-col">mohamed.taman@azka.com.eg</td></tr>
+          <tr><td>20</td><td>Ahmed Lotfy Mohamed</td><td>ahmed.lotfy@azka.com.eg</td><td>Flow</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">mohamed.taman@azka.com.eg</td></tr>
+
+          <!-- Prepaid -->
+          <tr class="dept-header"><td colspan="6">Prepaid Department (5 members)</td></tr>
+          <tr><td>21</td><td>Ahmed Gaber Mohammed</td><td>ahmed.gaber@azka.com.eg</td><td>Prepaid</td><td><span class="badge badge-gray">N/A</span></td><td class="reporter-col">mohamed.essa@azka.com.eg</td></tr>
+          <tr><td>22</td><td>Ahmed Adel Elhossiny</td><td>ahmed.elhossiny@azka.com.eg</td><td>Prepaid</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">ahmed.gaber@azka.com.eg</td></tr>
+          <tr><td>23</td><td>Ahmed Mustafa Abdelnaby</td><td>ahmed.abdelnaby@azka.com.eg</td><td>Prepaid</td><td><span class="badge badge-purple">Junior</span></td><td class="reporter-col">ahmed.gaber@azka.com.eg</td></tr>
+          <tr><td>24</td><td>Nour Eldean Ashraf</td><td>nour.ashraf@azka.com.eg</td><td>Prepaid</td><td><span class="badge badge-purple">Junior</span></td><td class="reporter-col">ahmed.gaber@azka.com.eg</td></tr>
+          <tr><td>25</td><td>Muhammad Hassan Hafez</td><td>hassan.hafez@azka.com.eg</td><td>Prepaid</td><td><span class="badge badge-purple">Junior</span></td><td class="reporter-col">ahmed.gaber@azka.com.eg</td></tr>
+
+          <!-- R&D -->
+          <tr class="dept-header"><td colspan="6">R&amp;D Department (7 members)</td></tr>
+          <tr><td>26</td><td>Ahmed A. Elzoughby</td><td>ahmed.abdeltawab@azka.com.eg</td><td>R&amp;D</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">saif.eldin@azka.com.eg</td></tr>
+          <tr><td>27</td><td>Mohamed Medhat Ghareeb</td><td>mohamed.medhat@azka.com.eg</td><td>R&amp;D</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">saif.eldin@azka.com.eg</td></tr>
+          <tr><td>28</td><td>Mahmoud M. Youness</td><td>mahmoud.youness@azka.com.eg</td><td>R&amp;D</td><td><span class="badge badge-gray">N/A</span></td><td class="reporter-col">saif.eldin@azka.com.eg</td></tr>
+          <tr><td>29</td><td>Sief Eldin Gamal Yones</td><td>saif.eldin@azka.com.eg</td><td>R&amp;D</td><td><span class="badge badge-blue">Senior</span></td><td class="reporter-col">mohamed.essa@azka.com.eg</td></tr>
+          <tr><td>30</td><td>Mohamed Magdy Hamed</td><td>mohamed.magdy@azka.com.eg</td><td>R&amp;D</td><td><span class="badge badge-gray">N/A</span></td><td class="reporter-col">saif.eldin@azka.com.eg</td></tr>
+          <tr><td>31</td><td>Abdelrahman Kadah</td><td>abdelrahman.kadah@azka.com.eg</td><td>R&amp;D</td><td><span class="badge badge-purple">Junior</span></td><td class="reporter-col">saif.eldin@azka.com.eg</td></tr>
+          <tr><td>32</td><td>Momen Ahmed Fathy</td><td>moemen.ahmed@azka.com.eg</td><td>R&amp;D</td><td><span class="badge badge-purple">Junior</span></td><td class="reporter-col">saif.eldin@azka.com.eg</td></tr>
+
+          <!-- Management -->
+          <tr class="dept-header"><td colspan="6">Management (Test)</td></tr>
+          <tr><td>33</td><td>Mohamed Essa (Test)</td><td>mohamed.essa@azka.com.eg</td><td>Management</td><td><span class="badge badge-orange">Manager</span></td><td class="reporter-col">mohamedismailfouad@gmail.com</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ============ REPORTER SUMMARY ============ -->
+      <h2>3. Reporter Summary</h2>
+      <p style="margin-bottom: 12px; font-size: 0.92rem; color: #555;">
+        Summary of who reports to whom across all departments.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Reporter</th>
+            <th>Department</th>
+            <th>Responsible For</th>
+            <th style="text-align:center;">Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Mohamed Essa</strong><br><small>mohamed.essa@azka.com.eg</small></td>
+            <td>Management</td>
+            <td>Omar Mahmoud (DLMS), Mervat Abdelrahman (Flow), Mohamed Taman (Flow), Ahmed Gaber (Prepaid), Sief Eldin (R&amp;D)</td>
+            <td style="text-align:center;"><span class="badge badge-orange">5</span></td>
+          </tr>
+          <tr>
+            <td><strong>Omar Mahmoud Abdelhady</strong><br><small>omar.mahmoud@azka.com.eg</small></td>
+            <td>DLMS</td>
+            <td>Hesham Galal, Abdelrahman Moussa, Ahmed ElHamamsy, Saeed Elfayoumy, Ahmed Hassan, Nourhan Alrefaei</td>
+            <td style="text-align:center;"><span class="badge badge-blue">6</span></td>
+          </tr>
+          <tr>
+            <td><strong>Mervat Abdelrahman</strong><br><small>mervat.abdelrahman@azka.com.eg</small></td>
+            <td>Flow</td>
+            <td>Mohamed Elsayed (DLMS), Hossam Abdullah, Mohamed Merdan, Mohamed Shahin, Nahla Hussien, Ahmed ElSayed</td>
+            <td style="text-align:center;"><span class="badge badge-blue">6</span></td>
+          </tr>
+          <tr>
+            <td><strong>Mohamed Salah Taman</strong><br><small>mohamed.taman@azka.com.eg</small></td>
+            <td>Flow</td>
+            <td>Ali Morsy, Muaaz Rashad, Samar Abdolmonem, Mostafa Abdelwahab, Ahmed Lotfy</td>
+            <td style="text-align:center;"><span class="badge badge-blue">5</span></td>
+          </tr>
+          <tr>
+            <td><strong>Ahmed Gaber Mohammed</strong><br><small>ahmed.gaber@azka.com.eg</small></td>
+            <td>Prepaid</td>
+            <td>Ahmed Elhossiny, Ahmed Abdelnaby, Nour Ashraf, Hassan Hafez</td>
+            <td style="text-align:center;"><span class="badge badge-blue">4</span></td>
+          </tr>
+          <tr>
+            <td><strong>Sief Eldin Gamal Yones</strong><br><small>saif.eldin@azka.com.eg</small></td>
+            <td>R&amp;D</td>
+            <td>Ahmed Elzoughby, Mohamed Medhat, Mahmoud Youness, Mohamed Magdy, Abdelrahman Kadah, Momen Ahmed</td>
+            <td style="text-align:center;"><span class="badge badge-blue">6</span></td>
+          </tr>
+          <tr>
+            <td><strong>mohamedismailfouad@gmail.com</strong><br><small>(Test account)</small></td>
+            <td>-</td>
+            <td>Mohamed Essa (Test)</td>
+            <td style="text-align:center;"><span class="badge badge-gray">1</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ============ NOTIFICATION DETAILS ============ -->
+      <h2>4. Email Notifications - Detailed Breakdown</h2>
+
+      <!-- Card 1: Survey -->
+      <div class="notification-card">
+        <div class="card-header" style="background: linear-gradient(135deg, #2c3e50, #34495e);">
+          1. Survey Submission Notification
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom: 10px; color: #555; font-size: 0.9rem;">
+            <strong>Source File:</strong> <code>backend/emailService.js</code> &rarr; <code>sendSurveyNotification()</code><br>
+            <strong>Trigger:</strong> Employee submits skill survey (<code>POST /api/surveys</code>)<br>
+            <strong>Behavior:</strong> Fire-and-forget (<code>.catch()</code>, does NOT await delivery)
+          </p>
+          <table>
+            <tr><th style="width:120px;">TO</th><td><code>azka.innovation@gmail.com</code> <span class="badge badge-gray">Hardcoded</span></td></tr>
+            <tr><th>CC</th><td><em>None</em></td></tr>
+            <tr><th>Subject</th><td><code>New Survey Submission - {fullName}</code></td></tr>
+            <tr><th>Content</th><td>Name, email, HR code, department, title, project name</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Card 2: Custom Email -->
+      <div class="notification-card">
+        <div class="card-header" style="background: linear-gradient(135deg, #7f8c8d, #95a5a6);">
+          2. Admin Custom Email (Survey)
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom: 10px; color: #555; font-size: 0.9rem;">
+            <strong>Source File:</strong> <code>backend/routes.js</code> &rarr; <code>POST /api/surveys/send-email</code><br>
+            <strong>Trigger:</strong> Admin sends a custom email from admin panel<br>
+            <strong>Behavior:</strong> Awaited
+          </p>
+          <table>
+            <tr><th style="width:120px;">TO</th><td>Custom (from request body)</td></tr>
+            <tr><th>CC</th><td><em>None</em></td></tr>
+            <tr><th>Subject</th><td>Custom (from request body)</td></tr>
+            <tr><th>Content</th><td>Custom HTML (from request body)</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Card 3: Vacation Submission -->
+      <div class="notification-card">
+        <div class="card-header" style="background: linear-gradient(135deg, #1a5f7a, #159895);">
+          3. Annual Vacation Submission
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom: 10px; color: #555; font-size: 0.9rem;">
+            <strong>Source File:</strong> <code>backend/vacationRoutes.js</code> &rarr; <code>sendVacationEmails()</code><br>
+            <strong>Trigger:</strong> Employee submits or updates annual vacation plan (<code>POST /api/vacations</code>)<br>
+            <strong>Behavior:</strong> Awaited (2 separate emails sent)
+          </p>
+          <h3>Email #1 - Employee Notification</h3>
+          <table>
+            <tr><th style="width:120px;">TO</th><td>Employee's email</td></tr>
+            <tr><th>CC</th><td><code>EMAIL_CC</code> env + <strong>Employee's Reporter</strong> (per-employee)</td></tr>
+            <tr><th>Subject</th><td><code>{New/Updated} Vacation: {name} ({dept}) - {days} days ({year})</code></td></tr>
+            <tr><th>Content</th><td>Employee details, vacation days list, submission date</td></tr>
+          </table>
+          <h3>Email #2 - Admin Copy</h3>
+          <table>
+            <tr><th style="width:120px;">TO</th><td><code>EMAIL_USER</code> (sender/admin account)</td></tr>
+            <tr><th>CC</th><td><em>None</em></td></tr>
+            <tr><th>Subject</th><td>Same as Email #1</td></tr>
+            <tr><th>Content</th><td>Same as Email #1</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Card 4: Vacation Reminder Cron -->
+      <div class="notification-card">
+        <div class="card-header" style="background: linear-gradient(135deg, #e67e22, #f39c12);">
+          4. Vacation Reminder (Daily Cron)
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom: 10px; color: #555; font-size: 0.9rem;">
+            <strong>Source File:</strong> <code>backend/vacationRoutes.js</code> &rarr; <code>GET /api/vacations/reminders/check</code><br>
+            <strong>Trigger:</strong> Vercel cron daily at <strong>6:00 AM UTC</strong> (8:00 AM Egypt time)<br>
+            <strong>Cron Config:</strong> <code>backend/vercel.json</code> &rarr; <code>"0 6 * * *"</code><br>
+            <strong>Milestones:</strong> <span class="badge badge-blue">30</span> <span class="badge badge-blue">20</span> <span class="badge badge-blue">10</span> <span class="badge badge-orange">5</span> <span class="badge badge-orange">3</span> <span class="badge badge-red">1</span> days before vacation<br>
+            <strong>Behavior:</strong> Groups all matching days per employee into 1 email
+          </p>
+          <table>
+            <tr><th style="width:120px;">TO</th><td><code>mohamed.essa@azka.com.eg</code> <span class="badge badge-gray">Hardcoded</span></td></tr>
+            <tr><th>CC</th><td><strong>Employee's Reporter</strong> (per-employee)</td></tr>
+            <tr><th>Subject</th><td><code>Vacation Reminder: {name} ({dept}) - {X} day(s) away</code></td></tr>
+            <tr><th>Content</th><td>Employee profile (name, email, HR code, dept, title, experience, reporter), upcoming days table with color-coded urgency, full vacation plan for context</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Card 5: Service Request Submission -->
+      <div class="notification-card">
+        <div class="card-header" style="background: linear-gradient(135deg, #27ae60, #2ecc71);">
+          5. Service Request Submission (WFH / Urgent Vacation / Need Help)
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom: 10px; color: #555; font-size: 0.9rem;">
+            <strong>Source File:</strong> <code>backend/serviceRoutes.js</code> &rarr; <code>sendServiceEmail()</code><br>
+            <strong>Trigger:</strong> Employee submits or updates a service request (<code>POST /api/service-requests</code>)<br>
+            <strong>Types:</strong> <span class="badge badge-teal">Work From Home</span> <span class="badge badge-orange">Urgent Vacation</span> <span class="badge badge-purple">Need Help</span><br>
+            <strong>Behavior:</strong> Awaited (2 separate emails sent)
+          </p>
+          <h3>Email #1 - Employee Notification</h3>
+          <table>
+            <tr><th style="width:120px;">TO</th><td>Employee's email</td></tr>
+            <tr><th>CC</th><td><code>EMAIL_CC</code> env + <strong>Employee's Reporter</strong> (per-employee)</td></tr>
+            <tr><th>Subject</th><td><code>{New/Updated} {Type} Request: {name} ({dept})</code></td></tr>
+            <tr><th>Content</th><td>Employee details (name, email, HR code, dept, experience), request type, dates (if applicable), reason</td></tr>
+          </table>
+          <h3>Email #2 - Admin Copy</h3>
+          <table>
+            <tr><th style="width:120px;">TO</th><td><code>EMAIL_USER</code> (sender/admin account)</td></tr>
+            <tr><th>CC</th><td><em>None</em></td></tr>
+            <tr><th>Subject</th><td>Same as Email #1</td></tr>
+            <tr><th>Content</th><td>Same as Email #1</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Card 6: Status Change -->
+      <div class="notification-card">
+        <div class="card-header" style="background: linear-gradient(135deg, #8e44ad, #9b59b6);">
+          6. Service Request Status Change (Approve / Reject)
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom: 10px; color: #555; font-size: 0.9rem;">
+            <strong>Source File:</strong> <code>backend/serviceRoutes.js</code> &rarr; <code>sendStatusChangeEmail()</code><br>
+            <strong>Trigger:</strong> Admin approves or rejects a request (<code>PUT /api/service-requests/:id/status</code>)<br>
+            <strong>Behavior:</strong> Awaited; only sends for <span class="badge badge-green">approved</span> or <span class="badge badge-red">rejected</span> (not pending)
+          </p>
+          <table>
+            <tr><th style="width:120px;">TO</th><td>Employee's email</td></tr>
+            <tr><th>CC</th><td><code>EMAIL_CC</code> env + <strong>Employee's Reporter</strong> (per-employee)</td></tr>
+            <tr><th>Subject</th><td><code>Your {Type} Request has been {Approved/Rejected} - {name}</code></td></tr>
+            <tr><th>Content</th><td>Status badge (green/red), employee details, request type, dates, reason, admin note (if any)</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ FLOW DIAGRAM ============ -->
+      <h2>5. Email Flow Summary</h2>
+      <div class="flow-diagram">
+        <strong>--- Employee Actions ---</strong><br>
+        <span class="highlight">Employee submits survey</span> <span class="arrow">&rarr;</span> <span class="email">azka.innovation@gmail.com</span><br>
+        <span class="highlight">Employee submits vacation</span> <span class="arrow">&rarr;</span> <span class="email">Employee + CC(EMAIL_CC, Reporter)</span> + <span class="email">Admin(EMAIL_USER)</span><br>
+        <span class="highlight">Employee submits WFH</span> <span class="arrow">&rarr;</span> <span class="email">Employee + CC(EMAIL_CC, Reporter)</span> + <span class="email">Admin(EMAIL_USER)</span><br>
+        <span class="highlight">Employee submits Urgent Vacation</span> <span class="arrow">&rarr;</span> <span class="email">Employee + CC(EMAIL_CC, Reporter)</span> + <span class="email">Admin(EMAIL_USER)</span><br>
+        <span class="highlight">Employee submits Need Help</span> <span class="arrow">&rarr;</span> <span class="email">Employee + CC(EMAIL_CC, Reporter)</span> + <span class="email">Admin(EMAIL_USER)</span><br>
+        <br>
+        <strong>--- Admin Actions ---</strong><br>
+        <span class="highlight">Admin approves/rejects request</span> <span class="arrow">&rarr;</span> <span class="email">Employee + CC(EMAIL_CC, Reporter)</span><br>
+        <span class="highlight">Admin sends custom email</span> <span class="arrow">&rarr;</span> <span class="email">Custom recipient</span><br>
+        <br>
+        <strong>--- Automated (Cron) ---</strong><br>
+        <span class="highlight">Daily 8AM Egypt (vacation reminder)</span> <span class="arrow">&rarr;</span> <span class="email">mohamed.essa@azka.com.eg + CC(Reporter)</span><br>
+      </div>
+
+      <!-- ============ NOTES ============ -->
+      <h2>6. Important Notes</h2>
+      <div class="config-box">
+        <p><strong>1.</strong> Reporter assignment is <strong>per-employee</strong>, not per-department. Each employee has their own reporter defined in the <code>reporter</code> field of the <code>EMPLOYEES</code> array.</p>
+        <p><strong>2.</strong> The survey notification goes to <code>azka.innovation@gmail.com</code> (hardcoded), not the admin account. No reporter CC on surveys.</p>
+        <p><strong>3.</strong> Vacation reminders go only to the manager (<code>mohamed.essa@azka.com.eg</code>, hardcoded), with the employee's reporter CC'd.</p>
+        <p><strong>4.</strong> The <code>EMAIL_CC</code> env variable is used for service requests and vacations, but NOT for survey notifications or vacation reminders.</p>
+        <p><strong>5.</strong> WFH requests allow editing (upsert); Urgent Vacation and Need Help block duplicates (409 error if pending exists).</p>
+        <p><strong>6.</strong> Survey notification is fire-and-forget; all other emails are awaited before responding to the client.</p>
+        <p><strong>7.</strong> Vercel cron jobs require the <strong>Pro plan</strong>. On the Hobby plan, an external cron service is needed.</p>
+      </div>
+
+    </div>
+
+    <div class="footer">
+      <p>AZKA Firmware Team - Email Notification System Report - March 2026</p>
+    </div>
+  </div>
+</body>
+</html>

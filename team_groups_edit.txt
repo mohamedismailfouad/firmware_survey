@@ -1,0 +1,66 @@
+AZKA Firmware Team - Reporter Assignment
+=========================================
+Fill the "Reporter Email" column for each employee, then send it back.
+
+# DLMS Department (8 members)
+# Current Team Lead: omar.mahmoud@azka.com.eg
+---------------------------------------------------------------------------
+Name                          | Email                              | Reporter Email
+---------------------------------------------------------------------------
+Omar Mahmoud Abdelhady        | omar.mahmoud@azka.com.eg           | mohamed.essa@azka.com.eg
+Mohamed Elsayed Mohamed       | mohamed.hamed@azka.com.eg          | mervat.abdelrahman@azka.com.eg
+Hesham Galal Mostafa          | hesham.galal@azka.com.eg           | omar.mahmoud@azka.com.eg
+Abdelrahman Moussa            | abdelrahman.moussa@azka.com.eg     | omar.mahmoud@azka.com.eg
+Ahmed M. ElHamamsy            | ahmed.hamamsy@azka.com.eg          | omar.mahmoud@azka.com.eg
+Saeed Alaa Elfayoumy          | saeed.elfayoumy@azka.com.eg        | omar.mahmoud@azka.com.eg
+Ahmed Hassan Zakaria          | ahmed.hassan@azka.com.eg           | omar.mahmoud@azka.com.eg
+Nourhan M. Alrefaei           | nourhan.refaie@azka.com.eg         | omar.mahmoud@azka.com.eg
+
+# Flow Department (12 members)
+# Current Team Lead: mervat.abdelrahman@azka.com.eg
+---------------------------------------------------------------------------
+Name                          | Email                              | Reporter Email
+---------------------------------------------------------------------------
+Mervat Abdelrahman            | mervat.abdelrahman@azka.com.eg     | mohamed.essa@azka.com.eg
+Ali Mahmoud Morsy             | ali.morsy@azka.com.eg              | mohamed.taman@azka.com.eg 
+Hossam Abdullah Mekhamer      | hossam.abdullah@azka.com.eg        | mervat.abdelrahman@azka.com.eg 
+Mohamed Salah Taman           | mohamed.taman@azka.com.eg          | mohamed.essa@azka.com.eg
+Mohamed Ashraf Merdan         | mohamed.merdan@azka.com.eg         | mervat.abdelrahman@azka.com.eg 
+Mohamed Sayed Shahin          | mohamed.shaheen@azka.com.eg        | mervat.abdelrahman@azka.com.eg 
+Nahla Hussien Rizk            | nahla.hussin@azka.com.eg           | mervat.abdelrahman@azka.com.eg 
+Ahmed ElSayed Abd Elkader     | ahmed.elsayed@azka.com.eg          | mervat.abdelrahman@azka.com.eg 
+Muaaz Rashad Sewilam          | muaaz.rashad@azka.com.eg           | mohamed.taman@azka.com.eg 
+Samar M. Abdolmonem           | samar.mohamed@azka.com.eg          | mohamed.taman@azka.com.eg 
+Mostafa Abdelwahab            | moustafa.abdelwahab@azka.com.eg    | mohamed.taman@azka.com.eg 
+Ahmed Lotfy Mohamed           | ahmed.lotfy@azka.com.eg            | mohamed.taman@azka.com.eg 
+
+# Prepaid Department (5 members)
+# Current Team Lead: NONE
+---------------------------------------------------------------------------
+Name                          | Email                              | Reporter Email
+---------------------------------------------------------------------------
+Ahmed Gaber Mohammed          | ahmed.gaber@azka.com.eg            | mohamed.essa@azka.com.eg
+Ahmed Adel Elhossiny          | ahmed.elhossiny@azka.com.eg        | ahmed.gaber@azka.com.eg
+Ahmed Mustafa Abdelnaby       | ahmed.abdelnaby@azka.com.eg        | ahmed.gaber@azka.com.eg
+Nour Eldean Ashraf            | nour.ashraf@azka.com.eg            | ahmed.gaber@azka.com.eg
+Muhammad Hassan Hafez         | hassan.hafez@azka.com.eg           | ahmed.gaber@azka.com.eg
+
+# R&D Department (7 members)
+# Current Team Lead: NONE
+---------------------------------------------------------------------------
+Name                          | Email                              | Reporter Email
+---------------------------------------------------------------------------
+Ahmed A. Elzoughby            | ahmed.abdeltawab@azka.com.eg       | saif.eldin@azka.com.eg
+Mohamed Medhat Ghareeb        | mohamed.medhat@azka.com.eg         | saif.eldin@azka.com.eg
+Mahmoud M. Youness            | mahmoud.youness@azka.com.eg        | saif.eldin@azka.com.eg
+Sief Eldin Gamal Yones        | saif.eldin@azka.com.eg             | mohamed.essa@azka.com.eg
+Mohamed Magdy Hamed           | mohamed.magdy@azka.com.eg          | saif.eldin@azka.com.eg
+Abdelrahman Kadah             | abdelrahman.kadah@azka.com.eg      | saif.eldin@azka.com.eg
+Momen Ahmed Fathy             | moemen.ahmed@azka.com.eg           | saif.eldin@azka.com.eg
+
+# Management (1 member - Test)
+# Current Team Lead: mohamedismailfouad@gmail.com
+---------------------------------------------------------------------------
+Name                          | Email                              | Reporter Email
+---------------------------------------------------------------------------
+Mohamed Essa (Test)           | mohamed.essa@azka.com.eg           | mohamedismailfouad@gmail.com

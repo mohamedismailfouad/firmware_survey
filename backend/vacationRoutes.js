@@ -1,6 +1,6 @@
 import express from 'express';
 import Vacation from './Vacation.js';
-import { EMPLOYEES, findEmployee, findEmployeeByEmail, getTeamLeadEmail } from './employees.js';
+import { EMPLOYEES, findEmployee, findEmployeeByEmail, getReporterEmail } from './employees.js';
 
 const router = express.Router();
 
@@ -19,7 +19,7 @@ async function sendVacationEmails(vacation, employee, isUpdate) {
 
   const fromName = process.env.EMAIL_FROM_NAME || 'AZKA Firmware Team';
   const fromAddress = process.env.EMAIL_USER;
-  const ccList = [process.env.EMAIL_CC, getTeamLeadEmail(employee.department)].filter(Boolean);
+  const ccList = [process.env.EMAIL_CC, getReporterEmail(vacation.email)].filter(Boolean);
   const ccAddress = ccList.join(', ');
   const action = isUpdate ? 'Updated' : 'New';
   const expText = employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
@@ -232,7 +232,7 @@ router.get('/reminders/check', async (req, res) => {
             vacation: vac,
             vacationDay: day,
             daysAway,
-            teamLead: getTeamLeadEmail(employee.department),
+            reporter: getReporterEmail(employee.email),
           });
         }
       }
@@ -247,7 +247,7 @@ router.get('/reminders/check', async (req, res) => {
     for (const r of reminders) {
       const key = r.employee.email;
       if (!grouped[key]) {
-        grouped[key] = { employee: r.employee, vacation: r.vacation, teamLead: r.teamLead, days: [] };
+        grouped[key] = { employee: r.employee, vacation: r.vacation, reporter: r.reporter, days: [] };
       }
       grouped[key].days.push({ date: r.vacationDay, daysAway: r.daysAway });
     }
@@ -269,10 +269,10 @@ router.get('/reminders/check', async (req, res) => {
     let sentCount = 0;
 
     for (const [email, data] of Object.entries(grouped)) {
-      const { employee, vacation, teamLead, days } = data;
+      const { employee, vacation, reporter, days } = data;
       const expText = employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
-      const teamLeadEmployee = teamLead ? EMPLOYEES.find((e) => e.email.toLowerCase() === teamLead.toLowerCase()) : null;
-      const teamLeadName = teamLeadEmployee ? teamLeadEmployee.name : null;
+      const reporterEmployee = reporter ? EMPLOYEES.find((e) => e.email.toLowerCase() === reporter.toLowerCase()) : null;
+      const reporterName = reporterEmployee ? reporterEmployee.name : null;
 
       const upcomingRows = days
         .sort((a, b) => a.daysAway - b.daysAway)
@@ -320,7 +320,7 @@ router.get('/reminders/check', async (req, res) => {
               <p style="margin: 5px 0;"><strong>Department:</strong> ${employee.department}</p>
               <p style="margin: 5px 0;"><strong>Title:</strong> ${employee.title || 'N/A'}</p>
               <p style="margin: 5px 0;"><strong>Experience:</strong> ${expText}</p>
-              ${teamLeadName ? `<p style="margin: 5px 0;"><strong>Team Lead:</strong> ${teamLeadName}</p>` : ''}
+              ${reporterName ? `<p style="margin: 5px 0;"><strong>Reporter:</strong> ${reporterName}</p>` : ''}
             </div>
 
             <div style="background: #fef9e7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -356,8 +356,8 @@ router.get('/reminders/check', async (req, res) => {
       const closestDay = days.sort((a, b) => a.daysAway - b.daysAway)[0];
       const subject = `Vacation Reminder: ${employee.name} (${employee.department}) - ${closestDay.daysAway} day${closestDay.daysAway !== 1 ? 's' : ''} away`;
 
-      // Build CC list: team lead
-      const ccList = [teamLead].filter(Boolean);
+      // Build CC list: reporter
+      const ccList = [reporter].filter(Boolean);
 
       // Send to manager
       await transporter.sendMail({
