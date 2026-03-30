@@ -1,0 +1,78 @@
+AZKA Firmware Team - Complete Employee Registry
+Updated: 2026-03-14
+Total: 33 employees (32 + 1 Management/Test)
+================================================
+
+DLMS Department (8 members)
+------------------------------------------------
+#   HR Code    Name                          Email                              Title      Exp(yr)  Reporter
+1   1220144    Omar Mahmoud Abdelhady        omar.mahmoud@azka.com.eg           TeamLead   7        mohamed.essa@azka.com.eg & aabdelhameed@azka.com.eg
+2   1230077    Mohamed Elsayed Mohamed       mohamed.hamed@azka.com.eg          Senior     3        mervat.abdelrahman@azka.com.eg & mamer@azka.com.eg
+3   1230087    Hesham Galal Mostafa          hesham.galal@azka.com.eg           Senior     5        omar.mahmoud@azka.com.eg & aabdelhameed@azka.com.eg
+4   1220035    Abdelrahman Moussa            abdelrahman.moussa@azka.com.eg     Senior     4        omar.mahmoud@azka.com.eg & aabdelhameed@azka.com.eg
+5   1230051    Ahmed M. ElHamamsy            ahmed.hamamsy@azka.com.eg          Senior     5        omar.mahmoud@azka.com.eg & aabdelhameed@azka.com.eg
+6   1230078    Saeed Alaa Elfayoumy          saeed.elfayoumy@azka.com.eg        Junior     5        omar.mahmoud@azka.com.eg & aabdelhameed@azka.com.eg
+7   1230036    Ahmed Hassan Zakaria          ahmed.hassan@azka.com.eg           Junior     4        omar.mahmoud@azka.com.eg & aabdelhameed@azka.com.eg
+8   1230012    Nourhan M. Alrefaei           nourhan.refaie@azka.com.eg         Junior     3        omar.mahmoud@azka.com.eg & aabdelhameed@azka.com.eg
+
+Flow Department (12 members)
+------------------------------------------------
+#   HR Code    Name                          Email                              Title      Exp(yr)  Reporter
+1   1220134    Mervat Abdelrahman            mervat.abdelrahman@azka.com.eg     TeamLead   8        mohamed.essa@azka.com.eg & mamer@azka.com.eg
+2   1230035    Ali Mahmoud Morsy             ali.morsy@azka.com.eg              Senior     5        mohamed.taman@azka.com.eg & mamer@azka.com.eg
+3   1230076    Hossam Abdullah Mekhamer      hossam.abdullah@azka.com.eg        Senior     3        mervat.abdelrahman@azka.com.eg & mamer@azka.com.eg
+4   1220067    Mohamed Salah Taman           mohamed.taman@azka.com.eg          TeamLead   7        mohamed.essa@azka.com.eg & mamer@azka.com.eg
+5   5240043    Mohamed Ashraf Merdan         mohamed.merdan@azka.com.eg         Senior     5        mervat.abdelrahman@azka.com.eg & mamer@azka.com.eg
+6   1230061    Mohamed Sayed Shahin          mohamed.shaheen@azka.com.eg        Junior     4        mervat.abdelrahman@azka.com.eg & mamer@azka.com.eg
+7   1230081    Nahla Hussien Rizk            nahla.hussin@azka.com.eg           Junior     5        mervat.abdelrahman@azka.com.eg & mamer@azka.com.eg
+8   1190200    Ahmed ElSayed Abd Elkader     ahmed.elsayed@azka.com.eg          Senior     6        mervat.abdelrahman@azka.com.eg & mamer@azka.com.eg
+9   1220108    Muaaz Rashad Sewilam          muaaz.rashad@azka.com.eg           Junior     5        ahmed.lotfy@azka.com.eg & mamer@azka.com.eg
+10  1220247    Samar M. Abdolmonem           samar.mohamed@azka.com.eg          Junior     3        mohamed.taman@azka.com.eg & mamer@azka.com.eg
+11  1240005    Mostafa Abdelwahab            moustafa.abdelwahab@azka.com.eg    Junior     2        ahmed.lotfy@azka.com.eg & mamer@azka.com.eg
+12  5240058    Ahmed Lotfy Mohamed           ahmed.lotfy@azka.com.eg            TechLead   8        mohamed.essa@azka.com.eg & mamer@azka.com.eg
+
+Prepaid Department (5 members)
+------------------------------------------------
+#   HR Code    Name                          Email                              Title      Exp(yr)  Reporter
+1   1230058    Ahmed Gaber Mohammed          ahmed.gaber@azka.com.eg            Senior     8        mohamed.essa@azka.com.eg & meisawi@azka.com.eg
+2   1220243    Ahmed Adel Elhossiny          ahmed.elhossiny@azka.com.eg        Senior     5        ahmed.gaber@azka.com.eg & meisawi@azka.com.eg
+3   1230038    Ahmed Mustafa Abdelnaby       ahmed.abdelnaby@azka.com.eg        Senior     5        ahmed.gaber@azka.com.eg & meisawi@azka.com.eg
+4   1230053    Nour Eldean Ashraf            nour.ashraf@azka.com.eg            Junior     4        ahmed.gaber@azka.com.eg & meisawi@azka.com.eg
+5   1220112    Muhammad Hassan Hafez         hassan.hafez@azka.com.eg           Senior     5        ahmed.gaber@azka.com.eg & meisawi@azka.com.eg
+
+R&D Department (7 members)
+------------------------------------------------
+#   HR Code    Name                          Email                              Title      Exp(yr)  Reporter
+1   1230083    Ahmed A. Elzoughby            ahmed.abdeltawab@azka.com.eg       Senior     7        saif.eldin@azka.com.eg & mohamed.sabry@azka.com.eg
+2   1230151    Mohamed Medhat Ghareeb        mohamed.medhat@azka.com.eg         Senior     5        saif.eldin@azka.com.eg & mohamed.sabry@azka.com.eg
+3   1220106    Mahmoud M. Youness            mahmoud.youness@azka.com.eg        Senior     4        saif.eldin@azka.com.eg & mohamed.sabry@azka.com.eg
+4   1220291    Sief Eldin Gamal Yones        saif.eldin@azka.com.eg             Senior     9        mohamed.essa@azka.com.eg & mohamed.sabry@azka.com.eg
+5   1230025    Mohamed Magdy Abdelfattah     mohamed.magdy@azka.com.eg          Senior     4        saif.eldin@azka.com.eg & mohamed.sabry@azka.com.eg
+6   1230068    Abdelrahman Kadah             abdelrahman.kadah@azka.com.eg      Junior     3        saif.eldin@azka.com.eg & mohamed.sabry@azka.com.eg
+7   5240029    Momen Ahmed Fathy             moemen.ahmed@azka.com.eg           Junior     1        saif.eldin@azka.com.eg & mohamed.sabry@azka.com.eg
+
+Management (1 member - Test Account)
+------------------------------------------------
+#   HR Code    Name                          Email                              Title      Exp(yr)  Reporter
+1   123456     Mohamed Essa (Test)           mohamed.essa@azka.com.eg           Manager    10       mohamedismailfouad@gmail.com
+
+================================================
+Summary by Department:
+  DLMS:       8 members  (1 TeamLead, 4 Senior, 3 Junior)
+  Flow:      12 members  (1 TeamLead, 6 Senior, 5 Junior)
+  Prepaid:    5 members  (1 Senior, 4 Junior)
+  R&D:        7 members  (6 Senior, 1 Junior)
+  Management: 1 member   (1 Manager)
+
+Reporter Structure:
+  Mohamed Essa (Manager) <-- Omar Mahmoud (DLMS TL), Mervat Abdelrahman (Flow TL),
+                              Mohamed Taman (Flow Senior), Ahmed Gaber (Prepaid),
+                              Sief Eldin (R&D Senior)
+  Omar Mahmoud (DLMS TL) <-- Hesham, Abdelrahman Moussa, Ahmed ElHamamsy,
+                              Saeed, Ahmed Hassan, Nourhan
+  Mervat Abdelrahman (Flow TL) <-- Mohamed Elsayed (DLMS), Hossam, Mohamed Merdan,
+                                     Mohamed Shahin, Nahla, Ahmed ElSayed
+  Mohamed Taman (Flow Senior) <-- Ali Morsy, Muaaz, Samar, Mostafa, Ahmed Lotfy
+  Ahmed Gaber (Prepaid) <-- Ahmed Elhossiny, Ahmed Abdelnaby, Nour Ashraf, Hassan Hafez
+  Sief Eldin (R&D Senior) <-- Ahmed Elzoughby, Mohamed Medhat, Mahmoud Youness,
+                                Mohamed Magdy, Abdelrahman Kadah, Momen Ahmed
