@@ -19,7 +19,7 @@ async function sendVacationEmails(vacation, employee, isUpdate) {
 
   const fromName = process.env.EMAIL_FROM_NAME || 'AZKA Firmware Team';
   const fromAddress = process.env.EMAIL_USER;
-  const ccList = [process.env.EMAIL_CC, getReporterEmail(vacation.email)].filter(Boolean);
+  const ccList = [process.env.EMAIL_CC, ...getReporterEmail(vacation.email)].filter(Boolean);
   const ccAddress = ccList.join(', ');
   const action = isUpdate ? 'Updated' : 'New';
   const expText = employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
@@ -271,8 +271,11 @@ router.get('/reminders/check', async (req, res) => {
     for (const [email, data] of Object.entries(grouped)) {
       const { employee, vacation, reporter, days } = data;
       const expText = employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
-      const reporterEmployee = reporter ? EMPLOYEES.find((e) => e.email.toLowerCase() === reporter.toLowerCase()) : null;
-      const reporterName = reporterEmployee ? reporterEmployee.name : null;
+      const reporterNames = reporter
+        .map((r) => EMPLOYEES.find((e) => e.email.toLowerCase() === r.toLowerCase()))
+        .filter(Boolean)
+        .map((e) => e.name);
+      const reporterName = reporterNames.length > 0 ? reporterNames.join(', ') : null;
 
       const upcomingRows = days
         .sort((a, b) => a.daysAway - b.daysAway)
@@ -356,8 +359,8 @@ router.get('/reminders/check', async (req, res) => {
       const closestDay = days.sort((a, b) => a.daysAway - b.daysAway)[0];
       const subject = `Vacation Reminder: ${employee.name} (${employee.department}) - ${closestDay.daysAway} day${closestDay.daysAway !== 1 ? 's' : ''} away`;
 
-      // Build CC list: reporter
-      const ccList = [reporter].filter(Boolean);
+      // Build CC list: reporters
+      const ccList = [...reporter].filter(Boolean);
 
       // Send to manager
       await transporter.sendMail({
@@ -434,7 +437,7 @@ router.post('/send-plan-reminders', async (req, res) => {
     const results = [];
 
     for (const { employee, reason, currentDays } of targets) {
-      const reporter = getReporterEmail(employee.email);
+      const reporters = getReporterEmail(employee.email);
       const expText = employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
 
       const alertMessage = reason === 'not_submitted'
@@ -500,7 +503,7 @@ router.post('/send-plan-reminders', async (req, res) => {
       const subject = reason === 'not_submitted'
         ? `Action Required: Submit Your ${year} Vacation Plan - ${employee.name} (${employee.department})`
         : `Action Required: Update Your ${year} Vacation Plan (${currentDays}/${minDays} days) - ${employee.name} (${employee.department})`;
-      const ccList = [reporter].filter(Boolean);
+      const ccList = [...reporters].filter(Boolean);
 
       try {
         await transporter.sendMail({

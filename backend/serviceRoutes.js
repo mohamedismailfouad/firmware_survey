@@ -25,7 +25,7 @@ async function sendServiceEmail(request, employee, isUpdate) {
 
   const fromName = process.env.EMAIL_FROM_NAME || 'AZKA Firmware Team';
   const fromAddress = process.env.EMAIL_USER;
-  const ccList = [process.env.EMAIL_CC, getReporterEmail(request.email)].filter(Boolean);
+  const ccList = [process.env.EMAIL_CC, ...getReporterEmail(request.email)].filter(Boolean);
   const ccAddress = ccList.join(', ');
   const action = isUpdate ? 'Updated' : 'New';
   const typeLabel = TYPE_LABELS[request.type] || request.type;
@@ -135,7 +135,7 @@ async function sendStatusChangeEmail(request, newStatus) {
   const empName = employee ? employee.name : request.email;
   const empDept = employee ? employee.department : 'N/A';
   const expText = employee && employee.experience != null ? `${employee.experience} year${employee.experience !== 1 ? 's' : ''}` : 'N/A';
-  const ccList = [process.env.EMAIL_CC, getReporterEmail(request.email)].filter(Boolean);
+  const ccList = [process.env.EMAIL_CC, ...getReporterEmail(request.email)].filter(Boolean);
   const ccAddress = ccList.join(', ');
 
   let datesHtml = '';
