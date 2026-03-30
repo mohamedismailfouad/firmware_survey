@@ -298,6 +298,9 @@ router.post('/', async (req, res) => {
       if (!dates || dates.length === 0) {
         return res.status(400).json({ error: 'Please select at least one date for Work From Home' });
       }
+      if (!reason || reason.trim().length === 0) {
+        return res.status(400).json({ error: 'Please enter your reason and tasks to be finished for Work From Home' });
+      }
     }
 
     if (type === 'urgent_vacation') {

@@ -280,6 +280,10 @@ export default function ServiceHub() {
       setSubmitStatus({ type: 'error', message: 'Please select at least one date.' });
       return;
     }
+    if (!wfhReason || wfhReason.trim().length === 0) {
+      setSubmitStatus({ type: 'error', message: 'Please enter your reason and tasks to be finished.' });
+      return;
+    }
     setSubmitting(true);
     setSubmitStatus(null);
     try {
@@ -688,12 +692,13 @@ export default function ServiceHub() {
             </p>
 
             <div className="form-group">
-              <label>Reason (optional)</label>
+              <label>Reason & Tasks to be finished <span style={{ color: '#e74c3c' }}>*</span></label>
               <textarea
-                placeholder="Describe why you need to work from home..."
+                placeholder="Please explain your reason for working from home and list the tasks you plan to finish..."
                 value={wfhReason}
                 onChange={(e) => setWfhReason(e.target.value)}
                 rows={3}
+                required
                 style={{ width: '100%', resize: 'vertical' }}
               />
             </div>
